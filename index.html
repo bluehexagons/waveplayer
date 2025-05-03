@@ -1,0 +1,36 @@
+<html>
+<head>
+<script type="text/javascript" src="waveplayer.js">
+</script>
+</head>
+<body>
+<div id="stuff">
+</div>
+<script type="text/javascript">
+(function () {
+	'use strict';
+	var files = ['scales.ogg', 'creepypiano2.ogg', 'melodic.ogg'],
+		clickButton = function (e) {
+			var player,
+				element = document.createElement('div');
+			document.getElementById('stuff').appendChild(element);
+			element.style.width = '100%';
+			element.style.height = '150px';
+			player = new WavePlayer(e.target.dataset.file, element);
+			window.lastPlayer = player;
+			window.lastElement = element;
+		},
+		i,
+		button;
+	i = files.length;
+	while (i--) {
+		button = document.createElement('button');
+		button.appendChild(document.createTextNode('Load ' + files[i]));
+		button.dataset.file = files[i];
+		button.addEventListener('click', clickButton);
+		document.getElementById('stuff').appendChild(button);
+	}
+}());
+</script>
+</body>
+</html>
