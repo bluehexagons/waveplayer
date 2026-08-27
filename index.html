@@ -1,40 +1,266 @@
-<html>
-<head>
-<script type="text/javascript" src="waveplayer.js">
-</script>
-</head>
-<body>
-<div id="stuff">
-</div>
-<script type="text/javascript">
-(function () {
-	'use strict';
-	var files = ['scales.ogg', 'creepypiano2.ogg', 'melodic.ogg'],
-		clickButton = function (e) {
-			var player,
-				element = document.createElement('div');
-			document.getElementById('stuff').appendChild(element);
-			element.style.width = '100%';
-			element.style.height = '150px';
-			player = new WavePlayer(e.target.dataset.file, element);
-			window.lastPlayer = player;
-			window.lastElement = element;
-		},
-		i,
-		button;
-	i = files.length;
-	while (i--) {
-		button = document.createElement('button');
-		button.appendChild(document.createTextNode('Load ' + files[i]));
-		button.dataset.file = files[i];
-		button.addEventListener('click', clickButton);
-		document.getElementById('stuff').appendChild(button);
-	}
-}());
-</script>
-<br/>
-<div>
-	Click to seek, double-click to play/pause. Spacebar while focused to play/pause.
-</div>
-</body>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Waveplayer is a polished, browser-native waveform audio player built with TypeScript 7."
+    />
+    <meta name="theme-color" content="#151515" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23171714'/%3E%3Cpath d='M12 32h6l4-15 7 30 7-38 7 45 5-25 4 3' fill='none' stroke='%23d8ff45' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
+    <title>Waveplayer — See what you hear</title>
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#player">Skip to player</a>
+
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="Waveplayer home">
+        <span class="brand-mark" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i>
+        </span>
+        <span>WAVEPLAYER</span>
+      </a>
+      <nav class="header-actions" aria-label="Site links">
+        <span class="build-pill"><i aria-hidden="true"></i> TypeScript 7</span>
+        <a
+          class="header-link"
+          href="https://github.com/bluehexagons/waveplayer"
+          target="_blank"
+          rel="noreferrer"
+        >
+          GitHub
+          <svg aria-hidden="true" viewBox="0 0 16 16">
+            <path d="M5 3h8v8M13 3 3 13" />
+          </svg>
+        </a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <p class="eyebrow"><span>01</span> Browser audio, made tactile</p>
+        <div class="hero-copy">
+          <h1 id="hero-title">See what<br />you <em>hear.</em></h1>
+          <div class="hero-aside">
+            <p>
+              A focused waveform player for exploring the shape, texture, and timing inside every
+              track.
+            </p>
+            <a class="text-link" href="#player">
+              Try the player
+              <span aria-hidden="true">↓</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="player-section" id="player" aria-labelledby="player-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow eyebrow-light"><span>Live</span> Interactive demo</p>
+            <h2 id="player-heading">The listening room</h2>
+          </div>
+          <p>Choose a study or bring your own audio. Your file never leaves this browser.</p>
+        </div>
+
+        <div class="player-card" data-playing="false">
+          <div class="track-art" aria-hidden="true">
+            <div class="art-noise"></div>
+            <div class="art-orbit art-orbit-a"></div>
+            <div class="art-orbit art-orbit-b"></div>
+            <div class="art-center">
+              <span>WP</span>
+              <i></i>
+            </div>
+            <p class="art-index">STUDY <span data-track-number>01</span></p>
+            <p class="art-wordmark">WAVE<br />FORM</p>
+          </div>
+
+          <div class="transport">
+            <div class="now-playing">
+              <div>
+                <p class="status-label"><i aria-hidden="true"></i> Now playing</p>
+                <h3 data-track-title>Scales in Motion</h3>
+                <p data-track-artist>Loren Crain · Piano study</p>
+              </div>
+              <div class="track-actions">
+                <a
+                  class="icon-button"
+                  data-download
+                  href="./audio/scales.ogg"
+                  download
+                  aria-label="Download current track"
+                >
+                  <svg aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14" />
+                  </svg>
+                </a>
+                <button class="icon-button" data-copy type="button" aria-label="Copy track link">
+                  <svg aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M9 15 15 9m-8.5 3.5-1 1a3.54 3.54 0 0 0 5 5l2-2a3.54 3.54 0 0 0 0-5M17.5 11.5l1-1a3.54 3.54 0 0 0-5-5l-2 2a3.54 3.54 0 0 0 0 5" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="waveform-wrap">
+              <canvas
+                data-waveform
+                role="slider"
+                tabindex="0"
+                aria-label="Seek through track"
+                aria-valuemin="0"
+                aria-valuemax="0"
+                aria-valuenow="0"
+                aria-valuetext="0:00 of 0:00"
+              ></canvas>
+              <output class="hover-time" data-hover-time aria-hidden="true">0:00</output>
+              <div class="waveform-state" data-waveform-state role="status">
+                <span class="loader" aria-hidden="true"></span>
+                <span data-waveform-message>Reading waveform…</span>
+              </div>
+            </div>
+
+            <div class="time-row" aria-live="off">
+              <time data-current-time>0:00</time>
+              <div class="audio-spec" data-audio-spec>Loading audio details</div>
+              <time data-duration>0:00</time>
+            </div>
+
+            <div class="controls">
+              <div class="volume-control">
+                <button class="plain-button volume-button" data-mute type="button" aria-label="Mute">
+                  <svg class="volume-on" aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M11 5 6.5 9H3v6h3.5l4.5 4V5Zm4 4a4 4 0 0 1 0 6m2.5-8.5a8 8 0 0 1 0 11" />
+                  </svg>
+                  <svg class="volume-off" aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M11 5 6.5 9H3v6h3.5l4.5 4V5Zm5 5 5 5m0-5-5 5" />
+                  </svg>
+                </button>
+                <label>
+                  <span class="sr-only">Volume</span>
+                  <input data-volume type="range" min="0" max="1" value="0.82" step="0.01" />
+                </label>
+              </div>
+
+              <div class="transport-buttons">
+                <button class="plain-button control-button" data-previous type="button" aria-label="Previous track">
+                  <svg aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M6 5v14m13-13-9 6 9 6V6Z" />
+                  </svg>
+                </button>
+                <button class="plain-button control-button seek-button" data-back type="button" aria-label="Back 10 seconds">
+                  <svg aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M4.8 7.5A9 9 0 1 1 3 13M4 3v5h5" />
+                  </svg>
+                  <span>10</span>
+                </button>
+                <button class="play-button" data-play type="button" aria-label="Play">
+                  <svg class="play-icon" aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="m9 6 9 6-9 6V6Z" />
+                  </svg>
+                  <svg class="pause-icon" aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M9 6v12m6-12v12" />
+                  </svg>
+                </button>
+                <button class="plain-button control-button seek-button" data-forward type="button" aria-label="Forward 10 seconds">
+                  <svg aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M19.2 7.5A9 9 0 1 0 21 13m-1-10v5h-5" />
+                  </svg>
+                  <span>10</span>
+                </button>
+                <button class="plain-button control-button" data-next type="button" aria-label="Next track">
+                  <svg aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M18 5v14M5 6l9 6-9 6V6Z" />
+                  </svg>
+                </button>
+              </div>
+
+              <button class="rate-button" data-rate type="button" aria-label="Playback speed, 1 times">
+                1×
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="library-section" aria-labelledby="queue-heading">
+        <div class="queue-panel">
+          <div class="panel-title-row">
+            <div>
+              <p class="eyebrow"><span>03</span> Included studies</p>
+              <h2 id="queue-heading">Session queue</h2>
+            </div>
+            <span class="track-count" data-track-count>3 tracks</span>
+          </div>
+          <div class="queue" data-queue></div>
+        </div>
+
+        <aside class="upload-panel" aria-labelledby="upload-heading" data-drop-zone>
+          <div class="upload-icon" aria-hidden="true">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M12 16V4m0 0L7 9m5-5 5 5M5 14v5h14v-5" />
+            </svg>
+          </div>
+          <p class="eyebrow eyebrow-light"><span>Local</span> Private by default</p>
+          <h2 id="upload-heading">Bring your own sound.</h2>
+          <p>Drop an audio file here to inspect its waveform, or choose one from your device.</p>
+          <button class="upload-button" data-upload-button type="button">Choose audio file</button>
+          <input data-file-input type="file" accept="audio/*,.ogg,.mp3,.wav,.m4a,.flac" hidden />
+          <small>Audio stays on this device</small>
+        </aside>
+      </section>
+
+      <section class="details-section" aria-labelledby="details-heading">
+        <div class="details-heading">
+          <p class="eyebrow"><span>04</span> Thoughtful by default</p>
+          <h2 id="details-heading">Built for close listening.</h2>
+        </div>
+        <div class="feature-grid">
+          <article>
+            <span class="feature-number">01</span>
+            <svg aria-hidden="true" viewBox="0 0 48 48">
+              <path d="M5 25h4l3-9 5 19 5-26 5 32 5-23 4 12 3-5h4" />
+            </svg>
+            <h3>True waveform</h3>
+            <p>Decoded from the source—not a decorative approximation.</p>
+          </article>
+          <article>
+            <span class="feature-number">02</span>
+            <svg aria-hidden="true" viewBox="0 0 48 48">
+              <rect x="5" y="9" width="38" height="30" rx="4" />
+              <path d="M12 18h5m4 0h5m4 0h6M12 25h8m4 0h5m4 0h3M12 32h4m4 0h16" />
+            </svg>
+            <h3>Keyboard fluent</h3>
+            <p>Space to play, arrows to seek, and zero traps for keyboard users.</p>
+          </article>
+          <article>
+            <span class="feature-number">03</span>
+            <svg aria-hidden="true" viewBox="0 0 48 48">
+              <path d="M24 4 8 10v12c0 10 6.8 18.2 16 22 9.2-3.8 16-12 16-22V10L24 4Z" />
+              <path d="m17 24 5 5 10-11" />
+            </svg>
+            <h3>Local & private</h3>
+            <p>Your uploads are decoded in-browser and never sent anywhere.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <a class="brand brand-footer" href="#top">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+        <span>WAVEPLAYER</span>
+      </a>
+      <p>A small study in visible sound.</p>
+      <p>Built with the Web Audio API + TypeScript 7.</p>
+    </footer>
+
+    <div class="toast" data-toast role="status" aria-live="polite"></div>
+  </body>
 </html>

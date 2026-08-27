@@ -1,0 +1,27 @@
+{
+  "name": "waveplayer",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A modern, dependency-light waveform audio player demo.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "check": "biome check . && tsc --noEmit",
+    "format": "biome check --write .",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.10",
+    "@playwright/test": "1.62.1",
+    "@types/node": "24.10.1",
+    "typescript": "7.0.2",
+    "vite": "8.2.2",
+    "vitest": "4.1.11"
+  },
+  "engines": {
+    "node": ">=22.12"
+  }
+}
