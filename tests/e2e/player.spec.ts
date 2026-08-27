@@ -25,7 +25,7 @@ function createSilentWave(): Buffer {
 test('loads a real waveform and exposes complete transport controls', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.getByRole('heading', { name: 'See what you hear.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Waveform audio player' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Scales in Motion' })).toBeVisible();
   await expect(page.locator('[data-queue] .queue-item')).toHaveCount(3);
   await expect(page.locator('[data-waveform-state]')).toHaveClass(/is-hidden/, { timeout: 15_000 });
@@ -89,11 +89,11 @@ test('remains usable at a narrow mobile viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
 
-  await expect(page.getByRole('heading', { name: 'See what you hear.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Waveform audio player' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
 
   const dropZone = page.locator('[data-drop-zone]');
-  const dropZoneChild = dropZone.getByRole('heading', { name: 'Bring your own sound.' });
+  const dropZoneChild = dropZone.getByRole('heading', { name: 'Try your own audio' });
   await dropZone.dispatchEvent('dragenter');
   await dropZoneChild.dispatchEvent('dragenter');
   await dropZoneChild.dispatchEvent('dragleave');
