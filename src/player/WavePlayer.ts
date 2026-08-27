@@ -4,12 +4,14 @@ import { clamp } from './utils';
 type Listener<T> = (payload: T) => void;
 
 export class WavePlayer {
+  private static mediaSessionOwner: WavePlayer | null = null;
   private readonly audio = new Audio();
   private readonly listeners = new Map<keyof PlayerEventMap, Set<Listener<unknown>>>();
   private readonly eventController = new AbortController();
   private readonly tracks: Track[];
   private activeIndex = 0;
   private animationFrame: number | null = null;
+  private lastAudibleVolume = 0.82;
 
   constructor(tracks: readonly Track[], initialIndex = 0) {
     if (tracks.length === 0) {
@@ -66,6 +68,9 @@ export class WavePlayer {
       await this.audio.play();
       return true;
     } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return false;
+      }
       const message = error instanceof Error ? error.message : 'Playback could not start.';
       this.emit('error', message);
       return false;
@@ -95,8 +100,13 @@ export class WavePlayer {
   }
 
   async select(index: number, autoplay = !this.audio.paused): Promise<void> {
+    if (!Number.isFinite(index)) {
+      throw new TypeError('Track index must be a finite number.');
+    }
+
+    const integerIndex = Math.trunc(index);
     const normalizedIndex =
-      ((index % this.tracks.length) + this.tracks.length) % this.tracks.length;
+      ((integerIndex % this.tracks.length) + this.tracks.length) % this.tracks.length;
     if (normalizedIndex === this.activeIndex) {
       if (autoplay) {
         await this.play();
@@ -133,12 +143,26 @@ export class WavePlayer {
   setVolume(value: number): void {
     this.audio.volume = clamp(value, 0, 1);
     if (this.audio.volume > 0) {
+      this.lastAudibleVolume = this.audio.volume;
       this.audio.muted = false;
     }
   }
 
   toggleMuted(): void {
-    this.audio.muted = !this.audio.muted;
+    if (this.audio.muted) {
+      this.audio.muted = false;
+      if (this.audio.volume === 0) {
+        this.setVolume(this.lastAudibleVolume);
+      }
+      return;
+    }
+
+    if (this.audio.volume === 0) {
+      this.setVolume(this.lastAudibleVolume);
+      return;
+    }
+
+    this.audio.muted = true;
   }
 
   setPlaybackRate(rate: number): void {
@@ -152,6 +176,7 @@ export class WavePlayer {
     this.audio.removeAttribute('src');
     this.audio.load();
     this.listeners.clear();
+    this.clearMediaSession();
   }
 
   private bindAudioEvents(): void {
@@ -171,6 +196,7 @@ export class WavePlayer {
       'play',
       () => {
         this.startAnimation();
+        this.updateMediaSessionPlaybackState('playing');
         this.emitChange();
       },
       { signal },
@@ -180,6 +206,7 @@ export class WavePlayer {
       'pause',
       () => {
         this.stopAnimation();
+        this.updateMediaSessionPlaybackState('paused');
         this.emitChange();
       },
       { signal },
@@ -212,10 +239,11 @@ export class WavePlayer {
   }
 
   private updateMediaSession(): void {
-    if (!('mediaSession' in navigator)) {
+    if (!('mediaSession' in navigator) || !('MediaMetadata' in window)) {
       return;
     }
 
+    WavePlayer.mediaSessionOwner = this;
     navigator.mediaSession.metadata = new MediaMetadata({
       title: this.currentTrack.title,
       artist: this.currentTrack.artist,
@@ -243,6 +271,38 @@ export class WavePlayer {
         // Some browsers expose Media Session but implement only a subset of its actions.
       }
     }
+  }
+
+  private updateMediaSessionPlaybackState(state: MediaSessionPlaybackState): void {
+    if ('mediaSession' in navigator && WavePlayer.mediaSessionOwner === this) {
+      navigator.mediaSession.playbackState = state;
+    }
+  }
+
+  private clearMediaSession(): void {
+    if (!('mediaSession' in navigator) || WavePlayer.mediaSessionOwner !== this) {
+      return;
+    }
+
+    const actions: readonly MediaSessionAction[] = [
+      'play',
+      'pause',
+      'previoustrack',
+      'nexttrack',
+      'seekbackward',
+      'seekforward',
+      'seekto',
+    ];
+    for (const action of actions) {
+      try {
+        navigator.mediaSession.setActionHandler(action, null);
+      } catch {
+        // Some browsers implement only a subset of Media Session actions.
+      }
+    }
+    navigator.mediaSession.metadata = null;
+    navigator.mediaSession.playbackState = 'none';
+    WavePlayer.mediaSessionOwner = null;
   }
 
   private readonly emitChange = (): void => {

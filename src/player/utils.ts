@@ -1,5 +1,5 @@
 export const clamp = (value: number, minimum: number, maximum: number): number =>
-  Math.min(Math.max(value, minimum), maximum);
+  Number.isNaN(value) ? minimum : Math.min(Math.max(value, minimum), maximum);
 
 export function formatTime(value: number): string {
   if (!Number.isFinite(value) || value < 0) {

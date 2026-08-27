@@ -1086,7 +1086,7 @@ main {
 }
 
 .upload-panel .eyebrow {
-  color: rgba(255, 255, 255, 0.66);
+  color: var(--ink);
 }
 
 .upload-panel h2 {
@@ -1097,7 +1097,7 @@ main {
 .upload-panel > p:not(.eyebrow) {
   max-width: 340px;
   margin: 24px 0 28px;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--ink);
   font-size: 0.84rem;
   line-height: 1.55;
 }
@@ -1124,7 +1124,7 @@ main {
 
 .upload-panel small {
   margin-top: 14px;
-  color: rgba(255, 255, 255, 0.52);
+  color: var(--ink);
   font-size: 0.57rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;

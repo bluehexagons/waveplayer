@@ -84,6 +84,8 @@ const player = new WavePlayer(tracks, initialTrackIndex);
 const knownDurations = new Map<string, number>();
 const localUrls = new Set<string>();
 let toastTimer: number | null = null;
+let queueStateKey = '';
+let dragDepth = 0;
 
 const waveform = new WaveformView({
   canvas: query<HTMLCanvasElement>('[data-waveform]'),
@@ -129,13 +131,9 @@ function renderQueue(): void {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'queue-item';
-    button.classList.toggle('is-active', index === snapshot.index);
+    button.dataset.trackIndex = index.toString();
+    button.dataset.trackId = track.id;
     button.style.setProperty('--track-accent', track.accent);
-    button.setAttribute('aria-pressed', String(index === snapshot.index));
-    button.setAttribute(
-      'aria-label',
-      index === snapshot.index ? `Play current track, ${track.title}` : `Play ${track.title}`,
-    );
 
     const number = document.createElement('span');
     number.className = 'queue-number';
@@ -174,6 +172,52 @@ function renderQueue(): void {
 
   elements.queue.replaceChildren(fragment);
   elements.trackCount.textContent = `${player.trackList.length} ${player.trackList.length === 1 ? 'track' : 'tracks'}`;
+  syncQueueState(snapshot, true);
+}
+
+function syncQueueState(snapshot: PlayerSnapshot, force = false): void {
+  const stateKey = `${snapshot.index}:${snapshot.paused}`;
+  if (!force && stateKey === queueStateKey) {
+    return;
+  }
+  queueStateKey = stateKey;
+
+  for (const button of elements.queue.querySelectorAll<HTMLButtonElement>('.queue-item')) {
+    const index = Number(button.dataset.trackIndex);
+    const track = player.trackList[index];
+    if (!track) {
+      continue;
+    }
+
+    const isCurrent = index === snapshot.index;
+    button.classList.toggle('is-active', isCurrent);
+    if (isCurrent) {
+      button.setAttribute('aria-current', 'true');
+    } else {
+      button.removeAttribute('aria-current');
+    }
+    button.setAttribute(
+      'aria-label',
+      isCurrent
+        ? `${snapshot.paused ? 'Play' : 'Pause'} current track, ${track.title}`
+        : `Play ${track.title}`,
+    );
+    const playMark = button.querySelector<HTMLElement>('.queue-play-mark');
+    if (playMark) {
+      playMark.textContent = isCurrent && !snapshot.paused ? 'Ⅱ' : '▶';
+    }
+  }
+}
+
+function updateQueueDuration(trackId: string, duration: number): void {
+  const button = Array.from(elements.queue.querySelectorAll<HTMLButtonElement>('.queue-item')).find(
+    (item) => item.dataset.trackId === trackId,
+  );
+  const time = button?.querySelector('time');
+  if (time) {
+    time.textContent = formatTime(duration);
+    time.dateTime = `PT${Math.floor(duration)}S`;
+  }
 }
 
 function updateAudioAnalysis(analysis: AudioAnalysis): void {
@@ -185,7 +229,7 @@ function updateAudioAnalysis(analysis: AudioAnalysis): void {
       : `${analysis.channels === 2 ? 'STEREO' : `${analysis.channels} CH`}`;
   const sampleRate = `${(analysis.sampleRate / 1_000).toFixed(1).replace('.0', '')} KHZ`;
   elements.audioSpec.textContent = `${channelLabel} · ${sampleRate}`;
-  renderQueue();
+  updateQueueDuration(track.id, analysis.duration);
 }
 
 function handleTrackChange(track: Track, index: number): void {
@@ -195,12 +239,9 @@ function handleTrackChange(track: Track, index: number): void {
   elements.trackArt.style.setProperty('--track-accent', track.accent);
   elements.audioSpec.textContent = 'Reading audio details';
   elements.download.href = track.src;
-  elements.download.download = track.local
-    ? track.title
-    : (track.src.split('/').at(-1) ?? track.title);
+  elements.download.download = track.downloadName ?? track.src.split('/').at(-1) ?? track.title;
   document.title = `${track.title} — Waveplayer`;
   window.history.replaceState(null, '', `#${track.id}`);
-  renderQueue();
   void waveform.load(track.src);
 }
 
@@ -212,30 +253,38 @@ function handleSnapshot(snapshot: PlayerSnapshot): void {
   elements.currentTime.dateTime = `PT${Math.floor(snapshot.currentTime)}S`;
   elements.duration.textContent = formatTime(snapshot.duration);
   elements.duration.dateTime = `PT${Math.floor(snapshot.duration)}S`;
-  elements.mute.classList.toggle('is-muted', snapshot.muted || snapshot.volume === 0);
-  elements.mute.setAttribute('aria-label', snapshot.muted ? 'Unmute' : 'Mute');
+  const isSilent = snapshot.muted || snapshot.volume === 0;
+  elements.mute.classList.toggle('is-muted', isSilent);
+  elements.mute.setAttribute('aria-label', isSilent ? 'Unmute' : 'Mute');
   elements.volume.value = snapshot.volume.toString();
   elements.volume.style.setProperty('--volume', `${snapshot.volume * 100}%`);
   elements.rate.textContent = `${snapshot.playbackRate.toFixed(2).replace(/\.00$/, '').replace(/0$/, '')}×`;
   elements.rate.setAttribute('aria-label', `Playback speed, ${snapshot.playbackRate} times`);
+  syncQueueState(snapshot);
   waveform.update(snapshot.currentTime, snapshot.duration);
 }
 
 function probeTrackDuration(track: Track): void {
   const probe = new Audio();
+  const controller = new AbortController();
   probe.preload = 'metadata';
+  const release = (): void => {
+    controller.abort();
+    probe.removeAttribute('src');
+    probe.load();
+  };
   probe.addEventListener(
     'loadedmetadata',
     () => {
       if (Number.isFinite(probe.duration)) {
         knownDurations.set(track.id, probe.duration);
-        renderQueue();
+        updateQueueDuration(track.id, probe.duration);
       }
-      probe.removeAttribute('src');
-      probe.load();
+      release();
     },
-    { once: true },
+    { once: true, signal: controller.signal },
   );
+  probe.addEventListener('error', release, { once: true, signal: controller.signal });
   probe.src = track.src;
 }
 
@@ -260,6 +309,7 @@ async function loadLocalFile(file: File): Promise<void> {
     subtitle: 'Local audio',
     src: objectUrl,
     accent: '#52e6c4',
+    downloadName: file.name,
     local: true,
   };
 
@@ -309,21 +359,31 @@ elements.fileInput.addEventListener('change', () => {
   elements.fileInput.value = '';
 });
 
-for (const eventName of ['dragenter', 'dragover'] as const) {
-  elements.dropZone.addEventListener(eventName, (event) => {
-    event.preventDefault();
-    elements.dropZone.classList.add('is-dragging');
-  });
-}
+elements.dropZone.addEventListener('dragenter', (event) => {
+  event.preventDefault();
+  dragDepth += 1;
+  elements.dropZone.classList.add('is-dragging');
+});
 
-for (const eventName of ['dragleave', 'drop'] as const) {
-  elements.dropZone.addEventListener(eventName, (event) => {
-    event.preventDefault();
+elements.dropZone.addEventListener('dragover', (event) => {
+  event.preventDefault();
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'copy';
+  }
+});
+
+elements.dropZone.addEventListener('dragleave', (event) => {
+  event.preventDefault();
+  dragDepth = Math.max(0, dragDepth - 1);
+  if (dragDepth === 0) {
     elements.dropZone.classList.remove('is-dragging');
-  });
-}
+  }
+});
 
 elements.dropZone.addEventListener('drop', (event) => {
+  event.preventDefault();
+  dragDepth = 0;
+  elements.dropZone.classList.remove('is-dragging');
   const file = event.dataTransfer?.files[0];
   if (file) {
     void loadLocalFile(file);
@@ -376,7 +436,13 @@ for (const track of tracks) {
   probeTrackDuration(track);
 }
 
-window.addEventListener('beforeunload', () => {
+window.addEventListener('pagehide', (event) => {
+  if (event.persisted) {
+    return;
+  }
+  if (toastTimer !== null) {
+    window.clearTimeout(toastTimer);
+  }
   waveform.destroy();
   player.destroy();
   for (const url of localUrls) {

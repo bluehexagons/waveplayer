@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
 function createSilentWave(): Buffer {
@@ -29,10 +30,19 @@ test('loads a real waveform and exposes complete transport controls', async ({ p
   await expect(page.locator('[data-queue] .queue-item')).toHaveCount(3);
   await expect(page.locator('[data-waveform-state]')).toHaveClass(/is-hidden/, { timeout: 15_000 });
 
-  await page.getByRole('button', { name: 'Play Creepy Piano No. 2' }).click();
+  const queueTrack = page.locator('.queue-item[data-track-id="creepy-piano-no-2"]');
+  await expect(queueTrack).toHaveAttribute('aria-label', 'Play Creepy Piano No. 2');
+  await queueTrack.click();
   await expect(page.getByRole('heading', { name: 'Creepy Piano No. 2' })).toBeVisible();
   await expect(page).toHaveURL(/#creepy-piano-no-2$/);
-  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
+  await expect(queueTrack).toBeFocused();
+  await expect(queueTrack).toHaveAttribute('aria-label', 'Pause current track, Creepy Piano No. 2');
+
+  await queueTrack.click();
+  await expect(queueTrack).toBeFocused();
+  await expect(queueTrack).toHaveAttribute('aria-label', 'Play current track, Creepy Piano No. 2');
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
 
   await page.getByRole('button', { name: 'Playback speed, 1 times' }).click();
   await expect(page.getByRole('button', { name: 'Playback speed, 1.25 times' })).toHaveText(
@@ -41,6 +51,20 @@ test('loads a real waveform and exposes complete transport controls', async ({ p
 
   await page.getByRole('button', { name: 'Mute' }).click();
   await expect(page.getByRole('button', { name: 'Unmute' })).toBeVisible();
+
+  const volume = page.getByRole('slider', { name: 'Volume' });
+  await volume.fill('0');
+  await expect(page.getByRole('button', { name: 'Unmute' })).toBeVisible();
+  await page.getByRole('button', { name: 'Unmute' }).click();
+  await expect(volume).toHaveValue('0.82');
+  await expect(page.getByRole('button', { name: 'Mute' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Pause', exact: true }).click();
+  const waveform = page.getByRole('slider', { name: 'Seek through track' });
+  const maximum = await waveform.getAttribute('aria-valuemax');
+  await waveform.focus();
+  await waveform.press('End');
+  await expect(waveform).toHaveAttribute('aria-valuenow', maximum ?? '0');
 });
 
 test('loads a local file without leaving the browser', async ({ page }) => {
@@ -55,6 +79,10 @@ test('loads a local file without leaving the browser', async ({ page }) => {
   await expect(page.locator('[data-queue] .queue-item')).toHaveCount(4);
   await expect(page.getByText('Local audio · This device')).toBeVisible();
   await expect(page.getByText('Loaded “Late Night Sketch” locally.')).toBeVisible();
+  await expect(page.locator('[data-download]')).toHaveAttribute(
+    'download',
+    'late-night_sketch.wav',
+  );
 });
 
 test('remains usable at a narrow mobile viewport', async ({ page }) => {
@@ -63,8 +91,45 @@ test('remains usable at a narrow mobile viewport', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: 'See what you hear.' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
+
+  const dropZone = page.locator('[data-drop-zone]');
+  const dropZoneChild = dropZone.getByRole('heading', { name: 'Bring your own sound.' });
+  await dropZone.dispatchEvent('dragenter');
+  await dropZoneChild.dispatchEvent('dragenter');
+  await dropZoneChild.dispatchEvent('dragleave');
+  await expect(dropZone).toHaveClass(/is-dragging/);
+  await dropZone.dispatchEvent('dragleave');
+  await expect(dropZone).not.toHaveClass(/is-dragging/);
+
   const hasHorizontalOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
   );
   expect(hasHorizontalOverflow).toBe(false);
+});
+
+test('has no automatically detectable accessibility violations', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('[data-waveform-state]')).toHaveClass(/is-hidden/, { timeout: 15_000 });
+
+  const results = await new AxeBuilder({ page }).analyze();
+  expect(results.violations).toEqual([]);
+});
+
+test('loads without runtime errors or failed asset requests', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') {
+      errors.push(message.text());
+    }
+  });
+  page.on('response', (response) => {
+    if (response.status() >= 400) {
+      errors.push(`${response.status()} ${response.url()}`);
+    }
+  });
+
+  await page.goto('/');
+  await expect(page.locator('[data-waveform-state]')).toHaveClass(/is-hidden/, { timeout: 15_000 });
+  expect(errors).toEqual([]);
 });

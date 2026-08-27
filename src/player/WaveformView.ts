@@ -20,12 +20,14 @@ export class WaveformView {
   private readonly onAnalysis: (analysis: AudioAnalysis) => void;
   private readonly onSeek: (time: number) => void;
   private readonly onToggle: () => void;
+  private readonly eventController = new AbortController();
   private readonly resizeObserver: ResizeObserver;
   private peaks: Float32Array<ArrayBufferLike> = new Float32Array();
   private currentTime = 0;
   private duration = 0;
   private hoverRatio: number | null = null;
   private dragging = false;
+  private pixelRatio = 1;
   private loadController: AbortController | null = null;
   private loadSequence = 0;
 
@@ -45,6 +47,7 @@ export class WaveformView {
     this.resizeObserver = new ResizeObserver(this.resize);
     this.resizeObserver.observe(this.canvas);
     this.bindEvents();
+    window.addEventListener('resize', this.resize, { signal: this.eventController.signal });
   }
 
   async load(source: string): Promise<void> {
@@ -85,6 +88,9 @@ export class WaveformView {
       this.updateAria();
       this.render();
     } catch (error) {
+      if (sequence !== this.loadSequence) {
+        return;
+      }
       if (error instanceof DOMException && error.name === 'AbortError') {
         return;
       }
@@ -106,76 +112,121 @@ export class WaveformView {
   destroy(): void {
     this.loadController?.abort();
     this.resizeObserver.disconnect();
+    this.eventController.abort();
+    this.dragging = false;
+    this.hoverRatio = null;
+    this.hoverLabel.classList.remove('is-visible');
   }
 
   private bindEvents(): void {
-    this.canvas.addEventListener('pointerdown', (event) => {
-      this.dragging = true;
-      this.canvas.setPointerCapture(event.pointerId);
-      this.seekFromPointer(event);
-    });
-
-    this.canvas.addEventListener('pointermove', (event) => {
-      this.showHover(event);
-      if (this.dragging) {
-        this.seekFromPointer(event);
-      }
-    });
-
-    this.canvas.addEventListener('pointerup', (event) => {
-      this.dragging = false;
-      this.canvas.releasePointerCapture(event.pointerId);
-    });
-
-    this.canvas.addEventListener('pointercancel', () => {
-      this.dragging = false;
-    });
-
-    this.canvas.addEventListener('pointerleave', () => {
-      if (!this.dragging) {
-        this.hoverRatio = null;
-        this.hoverLabel.classList.remove('is-visible');
-        this.render();
-      }
-    });
-
-    this.canvas.addEventListener('dblclick', (event) => {
-      event.preventDefault();
-      this.onToggle();
-    });
-
-    this.canvas.addEventListener('keydown', (event) => {
-      const jump = event.shiftKey ? 15 : 5;
-      let nextTime: number | null = null;
-
-      switch (event.key) {
-        case ' ':
-        case 'Enter':
-          this.onToggle();
-          break;
-        case 'ArrowLeft':
-        case 'ArrowDown':
-          nextTime = this.currentTime - jump;
-          break;
-        case 'ArrowRight':
-        case 'ArrowUp':
-          nextTime = this.currentTime + jump;
-          break;
-        case 'Home':
-          nextTime = 0;
-          break;
-        case 'End':
-          nextTime = this.duration;
-          break;
-        default:
+    const options = { signal: this.eventController.signal };
+    this.canvas.addEventListener(
+      'pointerdown',
+      (event) => {
+        if (!event.isPrimary || (event.pointerType === 'mouse' && event.button !== 0)) {
           return;
-      }
+        }
+        this.dragging = true;
+        this.canvas.focus({ preventScroll: true });
+        this.canvas.setPointerCapture(event.pointerId);
+        this.seekFromPointer(event);
+        event.preventDefault();
+      },
+      options,
+    );
 
-      if (nextTime !== null) {
-        this.onSeek(clamp(nextTime, 0, this.duration));
-      }
-      event.preventDefault();
-    });
+    this.canvas.addEventListener(
+      'pointermove',
+      (event) => {
+        if (!event.isPrimary) {
+          return;
+        }
+        this.showHover(event);
+        if (this.dragging) {
+          this.seekFromPointer(event);
+        }
+      },
+      options,
+    );
+
+    this.canvas.addEventListener(
+      'pointerup',
+      (event) => {
+        this.dragging = false;
+        if (this.canvas.hasPointerCapture(event.pointerId)) {
+          this.canvas.releasePointerCapture(event.pointerId);
+        }
+        if (event.pointerType !== 'mouse') {
+          this.hideHover();
+        }
+      },
+      options,
+    );
+
+    this.canvas.addEventListener(
+      'pointercancel',
+      () => {
+        this.dragging = false;
+        this.hideHover();
+      },
+      options,
+    );
+
+    this.canvas.addEventListener(
+      'pointerleave',
+      () => {
+        if (!this.dragging) {
+          this.hideHover();
+        }
+      },
+      options,
+    );
+
+    this.canvas.addEventListener(
+      'dblclick',
+      (event) => {
+        event.preventDefault();
+        this.onToggle();
+      },
+      options,
+    );
+
+    this.canvas.addEventListener(
+      'keydown',
+      (event) => {
+        const jump = event.shiftKey ? 15 : 5;
+        let nextTime: number | null = null;
+
+        switch (event.key) {
+          case ' ':
+          case 'Enter':
+            this.onToggle();
+            break;
+          case 'ArrowLeft':
+          case 'ArrowDown':
+            nextTime = this.currentTime - jump;
+            break;
+          case 'ArrowRight':
+          case 'ArrowUp':
+            nextTime = this.currentTime + jump;
+            break;
+          case 'Home':
+            nextTime = 0;
+            break;
+          case 'End':
+            nextTime = this.duration;
+            break;
+          default:
+            return;
+        }
+
+        if (nextTime !== null) {
+          this.onSeek(clamp(nextTime, 0, this.duration));
+        }
+        event.preventDefault();
+      },
+      options,
+    );
   }
 
   private readonly resize = (): void => {
@@ -183,6 +234,7 @@ export class WaveformView {
     const pixelRatio = window.devicePixelRatio || 1;
     const width = Math.max(1, Math.round(bounds.width * pixelRatio));
     const height = Math.max(1, Math.round(bounds.height * pixelRatio));
+    this.pixelRatio = pixelRatio;
 
     if (this.canvas.width !== width || this.canvas.height !== height) {
       this.canvas.width = width;
@@ -211,8 +263,14 @@ export class WaveformView {
     return clamp((event.clientX - bounds.left) / bounds.width, 0, 1);
   }
 
+  private hideHover(): void {
+    this.hoverRatio = null;
+    this.hoverLabel.classList.remove('is-visible');
+    this.render();
+  }
+
   private render(): void {
-    const pixelRatio = window.devicePixelRatio || 1;
+    const pixelRatio = this.pixelRatio;
     const width = this.canvas.width / pixelRatio;
     const height = this.canvas.height / pixelRatio;
     if (width <= 1 || height <= 1) {

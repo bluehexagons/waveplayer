@@ -43,7 +43,7 @@ npm run build      # Type-check and production build
 ```
 
 End-to-end tests cover waveform decoding, track changes, transport controls, local file loading,
-and narrow mobile layouts.
+narrow mobile layouts, automated accessibility checks, and runtime or asset-loading errors.
 
 ## Keyboard controls
 

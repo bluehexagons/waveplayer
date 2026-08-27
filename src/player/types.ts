@@ -5,6 +5,7 @@ export interface Track {
   readonly subtitle: string;
   readonly src: string;
   readonly accent: string;
+  readonly downloadName?: string;
   readonly local?: boolean;
 }
 
