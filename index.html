@@ -7,12 +7,12 @@
       name="description"
       content="An interactive browser waveform audio player demo built with TypeScript 7."
     />
-    <meta name="theme-color" content="#f4f3ee" />
+    <meta name="theme-color" content="#ecece7" />
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23171714'/%3E%3Cpath d='M12 32h6l4-15 7 30 7-38 7 45 5-25 4 3' fill='none' stroke='%23d8ff45' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
     />
-    <title>Waveplayer — Browser waveform audio player</title>
+    <title>Waveplayer — Audio inspection console</title>
     <script type="module" src="/src/main.ts"></script>
   </head>
   <body>
@@ -23,53 +23,61 @@
         <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
         <span>WAVEPLAYER</span>
       </a>
-      <nav class="header-actions" aria-label="Site links">
-        <a href="#player">Demo</a>
-        <a href="#usage">Usage</a>
-        <a
-          href="https://github.com/bluehexagons/waveplayer"
-          target="_blank"
-          rel="noreferrer"
-        >
-          GitHub
-          <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M5 3h8v8M13 3 3 13" /></svg>
-        </a>
-      </nav>
+      <div class="header-tools">
+        <span class="header-status"><i aria-hidden="true"></i> Engine ready</span>
+        <nav class="header-actions" aria-label="Site links">
+          <a href="#player">Console</a>
+          <a href="#usage">Reference</a>
+          <a
+            href="https://github.com/bluehexagons/waveplayer"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Source
+            <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M5 3h8v8M13 3 3 13" /></svg>
+          </a>
+        </nav>
+      </div>
     </header>
 
     <main class="demo-page" id="top">
       <section class="intro" aria-labelledby="page-title">
         <div class="intro-copy">
-          <p class="eyebrow">Browser audio component</p>
-          <h1 id="page-title">Waveform audio player</h1>
+          <p class="eyebrow">Reference interface / WP-07</p>
+          <h1 id="page-title">Audio inspection console</h1>
           <p>
-            Play the included tracks, seek directly on the decoded waveform, or load a local audio
-            file to try the player with your own material.
+            A working browser player for inspecting timing, energy, onsets, and texture. Use a demo
+            source or decode a local file without uploading it.
           </p>
         </div>
         <dl class="tool-facts">
-          <div><dt>Runtime</dt><dd>Web Audio API</dd></div>
-          <div><dt>Source</dt><dd>TypeScript 7</dd></div>
-          <div><dt>Uploads</dt><dd>Local only</dd></div>
+          <div><dt>Engine</dt><dd>Web Audio API</dd></div>
+          <div><dt>Analysis</dt><dd>4,096 bins</dd></div>
+          <div><dt>Input</dt><dd>Local / private</dd></div>
         </dl>
       </section>
 
       <section class="player-section" id="player" aria-labelledby="player-heading">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">Interactive demo</p>
-            <h2 id="player-heading">Player</h2>
+            <p class="eyebrow">Module 01 / Player</p>
+            <h2 id="player-heading">Playback + signal</h2>
           </div>
-          <p>Click or drag the waveform to seek. Double-click it to play or pause.</p>
+          <p>Envelope / RMS energy / onset detection / texture. Click or drag to seek.</p>
         </div>
 
         <div class="player-card" data-playing="false">
           <div class="track-art" aria-hidden="true">
             <div class="art-grid"></div>
-            <div class="art-ring"></div>
-            <div class="art-center"><span>WP</span><i></i></div>
-            <p class="art-index">TRACK <span data-track-number>01</span></p>
-            <p class="art-wordmark">WAVE<br />PLAYER</p>
+            <div class="module-id"><span>Source</span><b data-track-number>01</b></div>
+            <div class="source-meter">
+              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            </div>
+            <div class="source-readout">
+              <span>Input buffer</span>
+              <strong>PCM / A·B</strong>
+            </div>
+            <p class="module-state"><i></i> Decoded</p>
           </div>
 
           <div class="transport">
@@ -109,7 +117,17 @@
                 aria-valuemax="0"
                 aria-valuenow="0"
                 aria-valuetext="0:00 of 0:00"
+                aria-describedby="waveform-description"
               ></canvas>
+              <p class="sr-only" id="waveform-description">
+                The outer envelope shows sample peaks, the filled center shows average energy,
+                orange ticks show sudden onsets, and the lower purple rail shows signal texture.
+              </p>
+              <div class="waveform-key" aria-hidden="true">
+                <span class="key-energy"><i></i>Energy</span>
+                <span class="key-onset"><i></i>Onset</span>
+                <span class="key-texture"><i></i>Texture</span>
+              </div>
               <output class="hover-time" data-hover-time aria-hidden="true">0:00</output>
               <div class="waveform-state" data-waveform-state role="status">
                 <span class="loader" aria-hidden="true"></span>
@@ -119,7 +137,10 @@
 
             <div class="time-row" aria-live="off">
               <time data-current-time>0:00</time>
-              <div class="audio-spec" data-audio-spec>Loading audio details</div>
+              <div class="signal-readout">
+                <span class="audio-spec" data-audio-spec>Loading audio details</span>
+                <span>Peak · RMS · Onset · Texture</span>
+              </div>
               <time data-duration>0:00</time>
             </div>
 
@@ -170,10 +191,13 @@
         <div class="queue-panel">
           <div class="panel-title-row">
             <div>
-              <p class="eyebrow">Playlist</p>
-              <h2>Demo tracks</h2>
+              <p class="eyebrow">Module 02 / Sources</p>
+              <h2>Loaded sources</h2>
             </div>
             <span class="track-count" data-track-count>3 tracks</span>
+          </div>
+          <div class="queue-columns" aria-hidden="true">
+            <span>ID</span><span>Signal</span><span>Source</span><span>Length</span><span>State</span>
           </div>
           <div class="queue" data-queue></div>
         </div>
@@ -182,10 +206,10 @@
           <div class="upload-icon" aria-hidden="true">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 16V4m0 0L7 9m5-5 5 5M5 14v5h14v-5" /></svg>
           </div>
-          <p class="eyebrow">Local file</p>
-          <h2 id="upload-heading">Try your own audio</h2>
-          <p>Drop a file here or select one from your device. It is decoded locally and never uploaded.</p>
-          <button class="upload-button" data-upload-button type="button">Choose audio file</button>
+          <p class="eyebrow">Input bay / Local file</p>
+          <h2 id="upload-heading">Load local source</h2>
+          <p>Drop or select audio. Decode and analysis run on this device; no transfer occurs.</p>
+          <button class="upload-button" data-upload-button type="button">Select audio file</button>
           <input data-file-input type="file" accept="audio/*,.ogg,.mp3,.wav,.m4a,.flac" hidden />
           <small>OGG, MP3, WAV, M4A, FLAC</small>
         </aside>
@@ -193,8 +217,8 @@
 
       <section class="usage" id="usage" aria-labelledby="usage-heading">
         <article class="interaction-guide">
-          <p class="eyebrow">Controls</p>
-          <h2 id="usage-heading">Ways to interact</h2>
+          <p class="eyebrow">Module 03 / Controls</p>
+          <h2 id="usage-heading">Control map</h2>
           <dl class="shortcut-list">
             <div><dt>Click or drag</dt><dd>Seek on the waveform</dd></div>
             <div><dt>Double-click</dt><dd>Play or pause</dd></div>
@@ -208,8 +232,8 @@
         <article class="api-panel">
           <div class="api-heading">
             <div>
-              <p class="eyebrow">Reusable TypeScript</p>
-              <h2>Player API</h2>
+              <p class="eyebrow">Module 04 / TypeScript</p>
+              <h2>Engine surface</h2>
             </div>
             <span>0 runtime dependencies</span>
           </div>
@@ -232,7 +256,7 @@ player.seek(<b>12</b>);
         <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
         <span>WAVEPLAYER</span>
       </a>
-      <p>TypeScript 7 · Web Audio API · Apache 2.0</p>
+      <p>WP-07 · TypeScript 7 · Web Audio API · Apache 2.0</p>
     </footer>
 
     <div class="toast" data-toast role="status" aria-live="polite"></div>

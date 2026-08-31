@@ -1,5 +1,5 @@
 import type { AudioAnalysis } from './types';
-import { clamp, createWaveformPeaks, formatTime } from './utils';
+import { clamp, createWaveformAnalysis, formatTime, type WaveformAnalysisData } from './utils';
 
 interface WaveformViewOptions {
   readonly canvas: HTMLCanvasElement;
@@ -11,9 +11,68 @@ interface WaveformViewOptions {
   readonly onToggle: () => void;
 }
 
+interface DisplayWaveform {
+  readonly minimums: Float32Array<ArrayBuffer>;
+  readonly maximums: Float32Array<ArrayBuffer>;
+  readonly rootMeanSquares: Float32Array<ArrayBuffer>;
+  readonly onsets: Float32Array<ArrayBuffer>;
+  readonly texture: Float32Array<ArrayBuffer>;
+}
+
+interface WaveformPalette {
+  readonly envelopeFill: string;
+  readonly envelopeStroke: string;
+  readonly energyFill: string;
+  readonly onset: string;
+  readonly texture: string;
+}
+
+const REMAINING_PALETTE: WaveformPalette = {
+  envelopeFill: 'rgba(247, 245, 238, 0.07)',
+  envelopeStroke: 'rgba(247, 245, 238, 0.34)',
+  energyFill: 'rgba(247, 245, 238, 0.17)',
+  onset: '#ff9b7b',
+  texture: 'rgba(179, 168, 255, 0.62)',
+};
+
+const PLAYED_PALETTE: WaveformPalette = {
+  envelopeFill: 'rgba(216, 255, 69, 0.13)',
+  envelopeStroke: '#d8ff45',
+  energyFill: 'rgba(216, 255, 69, 0.34)',
+  onset: '#f7f5ee',
+  texture: '#c7bdff',
+};
+
+function chooseTimeStep(duration: number, width: number): number {
+  if (duration <= 0) {
+    return 0;
+  }
+
+  const targetLines = Math.max(2, Math.floor(width / 105));
+  const rawStep = duration / targetLines;
+  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
+
+  for (const multiplier of [1, 2, 5, 10]) {
+    const step = multiplier * magnitude;
+    if (step >= rawStep) {
+      return step;
+    }
+  }
+
+  return rawStep;
+}
+
+function displayAmplitude(value: number): number {
+  return Math.abs(value) ** 0.72;
+}
+
 export class WaveformView {
   private readonly canvas: HTMLCanvasElement;
   private readonly context: CanvasRenderingContext2D;
+  private readonly remainingLayer = document.createElement('canvas');
+  private readonly playedLayer = document.createElement('canvas');
+  private readonly remainingContext: CanvasRenderingContext2D;
+  private readonly playedContext: CanvasRenderingContext2D;
   private readonly hoverLabel: HTMLOutputElement;
   private readonly stateElement: HTMLElement;
   private readonly messageElement: HTMLElement;
@@ -22,22 +81,27 @@ export class WaveformView {
   private readonly onToggle: () => void;
   private readonly eventController = new AbortController();
   private readonly resizeObserver: ResizeObserver;
-  private peaks: Float32Array<ArrayBufferLike> = new Float32Array();
+  private analysis: WaveformAnalysisData | null = null;
   private currentTime = 0;
   private duration = 0;
   private hoverRatio: number | null = null;
   private dragging = false;
   private pixelRatio = 1;
+  private layersReady = false;
   private loadController: AbortController | null = null;
   private loadSequence = 0;
 
   constructor(options: WaveformViewOptions) {
     this.canvas = options.canvas;
     const context = this.canvas.getContext('2d');
-    if (!context) {
+    const remainingContext = this.remainingLayer.getContext('2d');
+    const playedContext = this.playedLayer.getContext('2d');
+    if (!context || !remainingContext || !playedContext) {
       throw new Error('Canvas rendering is not supported by this browser.');
     }
     this.context = context;
+    this.remainingContext = remainingContext;
+    this.playedContext = playedContext;
     this.hoverLabel = options.hoverLabel;
     this.stateElement = options.stateElement;
     this.messageElement = options.messageElement;
@@ -54,7 +118,12 @@ export class WaveformView {
     this.loadController?.abort();
     this.loadController = new AbortController();
     const sequence = ++this.loadSequence;
-    this.peaks = new Float32Array();
+    this.analysis = null;
+    this.currentTime = 0;
+    this.duration = 0;
+    this.layersReady = false;
+    delete this.canvas.dataset.analysisBins;
+    delete this.canvas.dataset.waveformDetail;
     this.showState('Reading waveform…');
     this.render();
 
@@ -77,8 +146,16 @@ export class WaveformView {
         return;
       }
 
-      this.peaks = createWaveformPeaks(audioBuffer);
+      await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+      if (sequence !== this.loadSequence) {
+        return;
+      }
+
+      this.analysis = createWaveformAnalysis(audioBuffer);
       this.duration = audioBuffer.duration;
+      this.canvas.dataset.analysisBins = this.analysis.maximums.length.toString();
+      this.canvas.dataset.waveformDetail = 'ready';
+      this.layersReady = false;
       this.onAnalysis({
         channels: audioBuffer.numberOfChannels,
         duration: audioBuffer.duration,
@@ -115,6 +192,11 @@ export class WaveformView {
     this.eventController.abort();
     this.dragging = false;
     this.hoverRatio = null;
+    this.analysis = null;
+    this.remainingLayer.width = 1;
+    this.remainingLayer.height = 1;
+    this.playedLayer.width = 1;
+    this.playedLayer.height = 1;
     this.hoverLabel.classList.remove('is-visible');
   }
 
@@ -239,6 +321,7 @@ export class WaveformView {
     if (this.canvas.width !== width || this.canvas.height !== height) {
       this.canvas.width = width;
       this.canvas.height = height;
+      this.layersReady = false;
       this.render();
     }
   };
@@ -252,10 +335,39 @@ export class WaveformView {
     const ratio = this.pointerRatio(event);
     const bounds = this.canvas.getBoundingClientRect();
     this.hoverRatio = ratio;
-    this.hoverLabel.value = formatTime(ratio * this.duration);
-    this.hoverLabel.style.left = `${clamp(ratio * bounds.width, 30, bounds.width - 30)}px`;
+    this.hoverLabel.value = `${formatTime(ratio * this.duration)} · ${this.describePosition(ratio)}`;
+    this.hoverLabel.style.left = `${clamp(ratio * bounds.width, 58, bounds.width - 58)}px`;
     this.hoverLabel.classList.add('is-visible');
     this.render();
+  }
+
+  private describePosition(ratio: number): string {
+    const analysis = this.analysis;
+    if (!analysis || analysis.rootMeanSquares.length === 0) {
+      return 'loading';
+    }
+
+    const index = Math.min(
+      analysis.rootMeanSquares.length - 1,
+      Math.floor(ratio * analysis.rootMeanSquares.length),
+    );
+    const energy = analysis.rootMeanSquares[index] ?? 0;
+    const onset = analysis.onsets[index] ?? 0;
+    const texture = analysis.texture[index] ?? 0;
+
+    if (onset >= 0.58) {
+      return 'onset';
+    }
+    if (energy < 0.045) {
+      return 'quiet';
+    }
+    if (texture >= 0.62) {
+      return 'dense';
+    }
+    if (energy >= 0.62) {
+      return 'loud';
+    }
+    return 'active';
   }
 
   private pointerRatio(event: PointerEvent): number {
@@ -278,88 +390,264 @@ export class WaveformView {
     }
 
     const context = this.context;
-    context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-    context.clearRect(0, 0, width, height);
-    this.drawGrid(width, height);
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    if (this.peaks.length === 0) {
-      this.drawPlaceholder(width, height);
+    if (!this.analysis || this.analysis.maximums.length === 0) {
+      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+      this.drawGrid(context, width, height);
+      this.drawPlaceholder(context, width, height);
       return;
     }
 
-    const progress = this.duration > 0 ? clamp(this.currentTime / this.duration, 0, 1) : 0;
-    const center = height / 2;
-    const verticalPadding = 26;
-    const amplitudeHeight = (height - verticalPadding * 2) / 2;
-    const gap = width < 560 ? 3 : 4;
-    const barCount = Math.max(1, Math.floor(width / gap));
-    const playedPath = new Path2D();
-    const remainingPath = new Path2D();
-
-    for (let index = 0; index < barCount; index += 1) {
-      const x = (index / Math.max(1, barCount - 1)) * width;
-      const peakIndex = Math.min(
-        this.peaks.length - 1,
-        Math.floor((index / barCount) * this.peaks.length),
-      );
-      const peak = this.peaks[peakIndex] ?? 0;
-      const barHeight = Math.max(2, peak * amplitudeHeight);
-      const path = x / width <= progress ? playedPath : remainingPath;
-      path.moveTo(x, center - barHeight);
-      path.lineTo(x, center + barHeight);
+    if (!this.layersReady) {
+      this.rebuildLayers(width, height);
     }
 
-    context.lineWidth = 2;
-    context.lineCap = 'round';
-    context.strokeStyle = '#d8ff45';
-    context.stroke(playedPath);
-    context.strokeStyle = 'rgba(247, 245, 238, 0.26)';
-    context.stroke(remainingPath);
+    context.drawImage(this.remainingLayer, 0, 0);
+    const progress = this.duration > 0 ? clamp(this.currentTime / this.duration, 0, 1) : 0;
+    const playedWidth = Math.round(this.canvas.width * progress);
+    if (playedWidth > 0) {
+      context.drawImage(
+        this.playedLayer,
+        0,
+        0,
+        playedWidth,
+        this.canvas.height,
+        0,
+        0,
+        playedWidth,
+        this.canvas.height,
+      );
+    }
 
-    const progressX = progress * width;
+    context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    const progressX = clamp(progress * width, 1, width - 1);
     context.beginPath();
-    context.arc(progressX, center, 3.5, 0, Math.PI * 2);
+    context.moveTo(progressX, 22);
+    context.lineTo(progressX, height - 22);
+    context.lineWidth = 1;
+    context.strokeStyle = 'rgba(247, 245, 238, 0.24)';
+    context.stroke();
+    context.beginPath();
+    context.arc(progressX, height / 2, 3.5, 0, Math.PI * 2);
     context.fillStyle = '#f7f5ee';
     context.fill();
 
     if (this.hoverRatio !== null) {
       const hoverX = this.hoverRatio * width;
       context.beginPath();
-      context.moveTo(hoverX, 13);
-      context.lineTo(hoverX, height - 13);
+      context.moveTo(hoverX, 6);
+      context.lineTo(hoverX, height - 6);
       context.lineWidth = 1;
-      context.strokeStyle = 'rgba(247, 245, 238, 0.72)';
+      context.strokeStyle = 'rgba(247, 245, 238, 0.75)';
       context.stroke();
     }
   }
 
-  private drawGrid(width: number, height: number): void {
-    this.context.lineWidth = 1;
-    this.context.strokeStyle = 'rgba(247, 245, 238, 0.075)';
-    this.context.beginPath();
+  private rebuildLayers(width: number, height: number): void {
+    // The expensive paths are rasterized only after analysis or resize; playback just crops them.
+    this.remainingLayer.width = this.canvas.width;
+    this.remainingLayer.height = this.canvas.height;
+    this.playedLayer.width = this.canvas.width;
+    this.playedLayer.height = this.canvas.height;
 
-    for (let line = 1; line < 8; line += 1) {
-      const x = (line / 8) * width;
-      this.context.moveTo(x, 0);
-      this.context.lineTo(x, height);
+    for (const context of [this.remainingContext, this.playedContext]) {
+      context.setTransform(1, 0, 0, 1, 0, 0);
+      context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      context.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
     }
-    this.context.moveTo(0, height / 2);
-    this.context.lineTo(width, height / 2);
-    this.context.stroke();
+
+    const display = this.createDisplayWaveform(width);
+    this.drawGrid(this.remainingContext, width, height);
+    this.drawWaveform(this.remainingContext, display, width, height, REMAINING_PALETTE);
+    this.drawWaveform(this.playedContext, display, width, height, PLAYED_PALETTE);
+    this.layersReady = true;
   }
 
-  private drawPlaceholder(width: number, height: number): void {
+  private createDisplayWaveform(width: number): DisplayWaveform {
+    const analysis = this.analysis;
+    if (!analysis) {
+      throw new Error('Waveform analysis is unavailable.');
+    }
+
+    const sourceCount = analysis.maximums.length;
+    const count = Math.max(1, Math.min(sourceCount, Math.ceil(width)));
+    const minimums = new Float32Array(count);
+    const maximums = new Float32Array(count);
+    const rootMeanSquares = new Float32Array(count);
+    const onsets = new Float32Array(count);
+    const texture = new Float32Array(count);
+
+    for (let column = 0; column < count; column += 1) {
+      const start = Math.floor((column * sourceCount) / count);
+      const end = Math.max(start + 1, Math.floor(((column + 1) * sourceCount) / count));
+      let minimum = 1;
+      let maximum = -1;
+      let energy = 0;
+      let onset = 0;
+      let detail = 0;
+
+      for (let index = start; index < end; index += 1) {
+        minimum = Math.min(minimum, analysis.minimums[index] ?? 0);
+        maximum = Math.max(maximum, analysis.maximums[index] ?? 0);
+        energy = Math.max(energy, analysis.rootMeanSquares[index] ?? 0);
+        onset = Math.max(onset, analysis.onsets[index] ?? 0);
+        detail = Math.max(detail, analysis.texture[index] ?? 0);
+      }
+
+      minimums[column] = minimum;
+      maximums[column] = maximum;
+      rootMeanSquares[column] = energy;
+      onsets[column] = onset;
+      texture[column] = detail;
+    }
+
+    return { minimums, maximums, rootMeanSquares, onsets, texture };
+  }
+
+  private drawWaveform(
+    context: CanvasRenderingContext2D,
+    waveform: DisplayWaveform,
+    width: number,
+    height: number,
+    palette: WaveformPalette,
+  ): void {
+    const count = waveform.maximums.length;
     const center = height / 2;
-    this.context.beginPath();
+    const amplitudeHeight = Math.max(1, (height - 54) / 2);
+    const xAt = (index: number): number => (index / Math.max(1, count - 1)) * width;
+    const topAt = (index: number): number =>
+      center - displayAmplitude(Math.max(0, waveform.maximums[index] ?? 0)) * amplitudeHeight;
+    const bottomAt = (index: number): number =>
+      center + displayAmplitude(Math.max(0, -(waveform.minimums[index] ?? 0))) * amplitudeHeight;
+
+    const envelope = new Path2D();
+    envelope.moveTo(0, center);
+    for (let index = 0; index < count; index += 1) {
+      envelope.lineTo(xAt(index), topAt(index));
+    }
+    for (let index = count - 1; index >= 0; index -= 1) {
+      envelope.lineTo(xAt(index), bottomAt(index));
+    }
+    envelope.closePath();
+    context.fillStyle = palette.envelopeFill;
+    context.fill(envelope);
+
+    const energy = new Path2D();
+    energy.moveTo(0, center);
+    for (let index = 0; index < count; index += 1) {
+      const energyHeight =
+        displayAmplitude(waveform.rootMeanSquares[index] ?? 0) * amplitudeHeight * 0.72;
+      energy.lineTo(xAt(index), center - energyHeight);
+    }
+    for (let index = count - 1; index >= 0; index -= 1) {
+      const energyHeight =
+        displayAmplitude(waveform.rootMeanSquares[index] ?? 0) * amplitudeHeight * 0.72;
+      energy.lineTo(xAt(index), center + energyHeight);
+    }
+    energy.closePath();
+    context.fillStyle = palette.energyFill;
+    context.fill(energy);
+
+    const upperOutline = new Path2D();
+    const lowerOutline = new Path2D();
+    for (let index = 0; index < count; index += 1) {
+      if (index === 0) {
+        upperOutline.moveTo(xAt(index), topAt(index));
+        lowerOutline.moveTo(xAt(index), bottomAt(index));
+      } else {
+        upperOutline.lineTo(xAt(index), topAt(index));
+        lowerOutline.lineTo(xAt(index), bottomAt(index));
+      }
+    }
+    context.lineWidth = 0.8;
+    context.lineJoin = 'round';
+    context.strokeStyle = palette.envelopeStroke;
+    context.stroke(upperOutline);
+    context.stroke(lowerOutline);
+
+    const textureRail = new Path2D();
+    const textureBaseline = height - 16;
+    for (let index = 0; index < count; index += 1) {
+      const value = waveform.texture[index] ?? 0;
+      if (value < 0.08) {
+        continue;
+      }
+      const x = xAt(index);
+      textureRail.moveTo(x, textureBaseline);
+      textureRail.lineTo(x, textureBaseline - value * 6);
+    }
+    context.lineWidth = 0.75;
+    context.strokeStyle = palette.texture;
+    context.stroke(textureRail);
+
+    const onsetMarks = new Path2D();
+    for (let index = 1; index < count - 1; index += 1) {
+      const value = waveform.onsets[index] ?? 0;
+      if (
+        value < 0.44 ||
+        value < (waveform.onsets[index - 1] ?? 0) ||
+        value < (waveform.onsets[index + 1] ?? 0)
+      ) {
+        continue;
+      }
+      const x = xAt(index);
+      onsetMarks.moveTo(x, 7);
+      onsetMarks.lineTo(x, 11 + value * 8);
+    }
+    context.lineWidth = 1.25;
+    context.strokeStyle = palette.onset;
+    context.stroke(onsetMarks);
+  }
+
+  private drawGrid(context: CanvasRenderingContext2D, width: number, height: number): void {
+    context.lineWidth = 1;
+    context.strokeStyle = 'rgba(247, 245, 238, 0.075)';
+    context.beginPath();
+    context.moveTo(0, height / 2);
+    context.lineTo(width, height / 2);
+
+    const timeStep = chooseTimeStep(this.duration, width);
+    if (timeStep > 0) {
+      for (let time = timeStep; time < this.duration; time += timeStep) {
+        const x = (time / this.duration) * width;
+        context.moveTo(x, 0);
+        context.lineTo(x, height);
+      }
+    } else {
+      for (let line = 1; line < 8; line += 1) {
+        const x = (line / 8) * width;
+        context.moveTo(x, 0);
+        context.lineTo(x, height);
+      }
+    }
+    context.stroke();
+
+    if (timeStep <= 0) {
+      return;
+    }
+    context.fillStyle = 'rgba(247, 245, 238, 0.38)';
+    context.font = '600 8px ui-monospace, SFMono-Regular, Consolas, monospace';
+    context.textBaseline = 'bottom';
+    for (let time = timeStep; time < this.duration; time += timeStep) {
+      const x = (time / this.duration) * width;
+      context.fillText(formatTime(time), x + 4, height - 4);
+    }
+  }
+
+  private drawPlaceholder(context: CanvasRenderingContext2D, width: number, height: number): void {
+    const center = height / 2;
+    context.beginPath();
     for (let x = 0; x < width; x += 5) {
       const wave = 5 + Math.abs(Math.sin(x * 0.025)) * 12;
-      this.context.moveTo(x, center - wave);
-      this.context.lineTo(x, center + wave);
+      context.moveTo(x, center - wave);
+      context.lineTo(x, center + wave);
     }
-    this.context.lineWidth = 2;
-    this.context.lineCap = 'round';
-    this.context.strokeStyle = 'rgba(247, 245, 238, 0.11)';
-    this.context.stroke();
+    context.lineWidth = 2;
+    context.lineCap = 'round';
+    context.strokeStyle = 'rgba(247, 245, 238, 0.11)';
+    context.stroke();
   }
 
   private updateAria(): void {

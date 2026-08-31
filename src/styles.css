@@ -1,14 +1,14 @@
 :root {
   color-scheme: light;
-  --ink: #191916;
-  --paper: #f4f3ee;
-  --surface: #fffefa;
-  --surface-muted: #eae8e0;
-  --line: #d5d3ca;
-  --muted: #64635c;
-  --lime: #d8ff45;
-  --violet: #7867e6;
-  --content-width: 1180px;
+  --ink: #181a18;
+  --paper: #ecece7;
+  --surface: #f7f7f3;
+  --surface-muted: #e2e3de;
+  --line: #bfc1ba;
+  --muted: #5e615c;
+  --lime: #cdf63c;
+  --violet: #7468d8;
+  --content-width: 1240px;
   --page-padding: clamp(18px, 4vw, 48px);
   font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
@@ -27,6 +27,8 @@ body {
   min-width: 320px;
   margin: 0;
   background: var(--paper);
+  background-image: linear-gradient(rgba(24, 26, 24, 0.022) 1px, transparent 1px);
+  background-size: 100% 24px;
   color: var(--ink);
 }
 
@@ -87,7 +89,7 @@ svg {
   left: 12px;
   padding: 10px 16px;
   transform: translateY(-160%);
-  border-radius: 8px;
+  border-radius: 2px;
   background: var(--lime);
   font-size: 0.75rem;
   font-weight: 800;
@@ -107,7 +109,7 @@ svg {
 
 .site-header {
   display: flex;
-  min-height: 70px;
+  min-height: 58px;
   padding-inline: var(--page-padding);
   align-items: center;
   justify-content: space-between;
@@ -119,8 +121,35 @@ svg {
   align-items: center;
   gap: 10px;
   font-size: 0.72rem;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-weight: 900;
   letter-spacing: 0.16em;
+}
+
+.header-tools {
+  display: flex;
+  align-items: center;
+  gap: clamp(20px, 4vw, 44px);
+}
+
+.header-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.56rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.header-status i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #7ca500;
+  box-shadow: 0 0 0 3px rgba(124, 165, 0, 0.1);
 }
 
 .brand-mark {
@@ -163,6 +192,7 @@ svg {
   gap: 6px;
   padding-block: 7px;
   color: var(--muted);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 0.68rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -185,14 +215,15 @@ svg {
 .intro {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  padding: clamp(52px, 8vw, 88px) 0 44px;
-  align-items: end;
-  gap: clamp(35px, 7vw, 100px);
+  padding: 34px 0 30px;
+  align-items: center;
+  gap: clamp(32px, 6vw, 78px);
 }
 
 .eyebrow {
   margin: 0 0 12px;
   color: var(--muted);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 0.63rem;
   font-weight: 850;
   text-transform: uppercase;
@@ -201,47 +232,59 @@ svg {
 
 .intro h1 {
   margin: 0;
-  font-size: clamp(2.8rem, 7vw, 5.25rem);
-  font-weight: 700;
-  line-height: 0.98;
-  letter-spacing: -0.065em;
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  font-weight: 680;
+  line-height: 1;
+  letter-spacing: -0.045em;
 }
 
 .intro-copy > p:last-child {
-  max-width: 700px;
-  margin: 24px 0 0;
+  max-width: 650px;
+  margin: 15px 0 0;
   color: #4f4e48;
-  font-size: clamp(0.98rem, 1.5vw, 1.1rem);
-  line-height: 1.6;
+  font-size: 0.83rem;
+  line-height: 1.55;
 }
 
 .tool-facts {
   display: grid;
-  min-width: 270px;
+  grid-template-columns: repeat(3, minmax(100px, 1fr));
+  min-width: min(470px, 45vw);
   margin: 0;
-  border-top: 1px solid var(--line);
+  border: 1px solid var(--line);
+  background: rgba(247, 247, 243, 0.5);
 }
 
 .tool-facts div {
-  display: grid;
-  grid-template-columns: 75px 1fr;
-  padding: 12px 0;
-  gap: 18px;
-  border-bottom: 1px solid var(--line);
-  font-size: 0.7rem;
+  display: block;
+  min-width: 0;
+  padding: 12px 14px;
+  border-right: 1px solid var(--line);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.62rem;
+}
+
+.tool-facts div:last-child {
+  border-right: 0;
 }
 
 .tool-facts dt {
+  margin-bottom: 7px;
   color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .tool-facts dd {
   margin: 0;
+  overflow: hidden;
   font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .player-section {
-  padding: 42px 0 58px;
+  padding: 28px 0 42px;
   border-top: 1px solid var(--line);
 }
 
@@ -255,7 +298,7 @@ svg {
 }
 
 .section-heading {
-  margin-bottom: 22px;
+  margin-bottom: 16px;
 }
 
 .section-heading h2,
@@ -263,29 +306,32 @@ svg {
 .upload-panel h2,
 .usage h2 {
   margin: 0;
-  font-size: clamp(1.7rem, 3vw, 2.5rem);
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
   line-height: 1;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.035em;
 }
 
 .section-heading > p {
-  max-width: 420px;
+  max-width: 500px;
   margin: 0 0 3px;
   color: var(--muted);
-  font-size: 0.78rem;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.61rem;
   line-height: 1.5;
+  text-transform: uppercase;
+  letter-spacing: 0.045em;
 }
 
 .player-card {
   display: grid;
-  grid-template-columns: minmax(180px, 0.42fr) minmax(0, 1.58fr);
-  min-height: 430px;
+  grid-template-columns: 176px minmax(0, 1fr);
+  min-height: 470px;
   overflow: hidden;
-  border: 1px solid #3a3a35;
-  border-radius: 18px;
-  background: #20201d;
+  border: 1px solid #464943;
+  border-radius: 4px;
+  background: #191b19;
   color: #f8f7f2;
-  box-shadow: 0 18px 45px rgba(25, 25, 22, 0.13);
+  box-shadow: 0 8px 20px rgba(24, 26, 24, 0.08);
 }
 
 .track-art {
@@ -293,7 +339,8 @@ svg {
   position: relative;
   min-height: 280px;
   overflow: hidden;
-  background: var(--track-accent);
+  border-right: 1px solid #464943;
+  background: color-mix(in srgb, var(--track-accent) 10%, #d9dbd5);
   color: var(--ink);
   transition: background 280ms ease;
 }
@@ -301,92 +348,164 @@ svg {
 .art-grid {
   position: absolute;
   inset: 0;
-  opacity: 0.28;
+  opacity: 0.22;
   background-image:
-    linear-gradient(rgba(25, 25, 22, 0.22) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(25, 25, 22, 0.22) 1px, transparent 1px);
-  background-size: 28px 28px;
+    linear-gradient(rgba(25, 25, 22, 0.2) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(25, 25, 22, 0.2) 1px, transparent 1px);
+  background-size: 18px 18px;
 }
 
-.art-ring {
+.module-id {
+  position: absolute;
+  top: 18px;
+  right: 16px;
+  left: 16px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(24, 26, 24, 0.5);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  text-transform: uppercase;
+}
+
+.module-id span {
+  padding-bottom: 9px;
+  font-size: 0.52rem;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+}
+
+.module-id b {
+  padding-bottom: 5px;
+  font-size: 1.55rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.source-meter {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 72%;
-  aspect-ratio: 1;
-  border: 1px solid rgba(25, 25, 22, 0.58);
-  border-radius: 50%;
+  display: flex;
+  width: 112px;
+  height: 112px;
+  padding: 15px 13px;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid rgba(24, 26, 24, 0.62);
+  background: rgba(247, 247, 243, 0.34);
   transform: translate(-50%, -50%);
 }
 
-.art-center {
+.source-meter::before,
+.source-meter::after {
   position: absolute;
+  background: rgba(24, 26, 24, 0.14);
+  content: "";
+}
+
+.source-meter::before {
   top: 50%;
+  right: 0;
+  left: 0;
+  height: 1px;
+}
+
+.source-meter::after {
+  top: 0;
+  bottom: 0;
   left: 50%;
-  display: grid;
-  width: 82px;
-  aspect-ratio: 1;
-  place-items: center;
-  border: 1px solid var(--ink);
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--track-accent) 74%, white);
-  transform: translate(-50%, -50%);
+  width: 1px;
 }
 
-.art-center span {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.65rem;
-  font-style: italic;
-}
-
-.art-center i {
-  position: absolute;
-  width: 16px;
-  aspect-ratio: 1;
-  border-radius: 50%;
+.source-meter i {
+  z-index: 1;
+  display: block;
+  width: 3px;
+  height: 24%;
   background: var(--ink);
+  transform-origin: center;
 }
 
-.player-card[data-playing="true"] .art-center span,
-.player-card[data-playing="false"] .art-center i {
-  opacity: 0;
+.source-meter i:nth-child(2),
+.source-meter i:nth-child(8) {
+  height: 42%;
 }
 
-.player-card[data-playing="true"] .art-ring {
-  animation: pulse-ring 2.5s ease-in-out infinite;
+.source-meter i:nth-child(3),
+.source-meter i:nth-child(7) {
+  height: 67%;
 }
 
-@keyframes pulse-ring {
-  50% {
-    transform: translate(-50%, -50%) scale(1.035);
+.source-meter i:nth-child(4),
+.source-meter i:nth-child(6) {
+  height: 88%;
+}
+
+.source-meter i:nth-child(5) {
+  height: 100%;
+  background: var(--track-accent);
+  box-shadow: 0 0 0 1px rgba(24, 26, 24, 0.35);
+}
+
+.player-card[data-playing="true"] .source-meter i:nth-child(odd) {
+  animation: meter-pulse 1.2s steps(4, end) infinite alternate;
+}
+
+@keyframes meter-pulse {
+  to {
+    transform: scaleY(0.58);
   }
 }
 
-.art-index,
-.art-wordmark {
+.source-readout,
+.module-state {
   position: absolute;
+  right: 16px;
+  left: 16px;
   margin: 0;
-  font-size: 0.55rem;
-  font-weight: 900;
-  letter-spacing: 0.14em;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  text-transform: uppercase;
 }
 
-.art-index {
-  top: 20px;
-  left: 20px;
+.source-readout {
+  bottom: 48px;
+  display: grid;
+  padding-top: 9px;
+  gap: 5px;
+  border-top: 1px solid rgba(24, 26, 24, 0.5);
 }
 
-.art-wordmark {
-  right: 18px;
+.source-readout span,
+.module-state {
+  font-size: 0.48rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.source-readout strong {
+  font-size: 0.59rem;
+  letter-spacing: 0.08em;
+}
+
+.module-state {
   bottom: 18px;
-  line-height: 0.92;
-  text-align: right;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.module-state i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #608300;
 }
 
 .transport {
   display: flex;
   min-width: 0;
-  padding: clamp(26px, 4vw, 48px);
+  padding: clamp(24px, 3vw, 34px);
   flex-direction: column;
   justify-content: space-between;
 }
@@ -405,6 +524,7 @@ svg {
   gap: 8px;
   margin: 0 0 10px;
   color: #aaa9a1;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 0.58rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -432,8 +552,8 @@ svg {
   max-width: 650px;
   margin: 0 0 6px;
   overflow: hidden;
-  font-size: clamp(1.65rem, 3.6vw, 3rem);
-  font-weight: 650;
+  font-size: clamp(1.55rem, 3vw, 2.35rem);
+  font-weight: 620;
   line-height: 1;
   letter-spacing: -0.05em;
   text-overflow: ellipsis;
@@ -443,7 +563,8 @@ svg {
 .now-playing h3 + p {
   margin: 0;
   color: #aaa9a1;
-  font-size: 0.72rem;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.62rem;
 }
 
 .track-actions {
@@ -454,12 +575,12 @@ svg {
 
 .icon-button {
   display: grid;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   place-items: center;
   border: 1px solid #4d4d47;
-  border-radius: 50%;
+  border-radius: 2px;
   background: transparent;
   color: #c7c6be;
   cursor: pointer;
@@ -481,7 +602,7 @@ svg {
 .waveform-wrap {
   position: relative;
   width: 100%;
-  height: clamp(140px, 16vw, 184px);
+  height: clamp(168px, 18vw, 216px);
   overflow: hidden;
   border-block: 1px solid #3a3a35;
   background: #1d1d1a;
@@ -502,6 +623,7 @@ svg {
 
 .waveform-state {
   position: absolute;
+  z-index: 3;
   inset: 0;
   display: flex;
   align-items: center;
@@ -515,6 +637,59 @@ svg {
   letter-spacing: 0.11em;
   pointer-events: none;
   transition: opacity 160ms ease;
+}
+
+.waveform-key {
+  position: absolute;
+  z-index: 1;
+  top: 8px;
+  right: 9px;
+  display: flex;
+  min-height: 22px;
+  padding: 5px 7px;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(247, 245, 238, 0.08);
+  border-radius: 2px;
+  background: rgba(29, 29, 26, 0.78);
+  color: #aaa9a1;
+  font-size: 0.48rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+}
+
+[data-waveform][data-waveform-detail="ready"] ~ .waveform-key {
+  opacity: 1;
+}
+
+.waveform-key span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.waveform-key i {
+  display: block;
+  width: 10px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(247, 245, 238, 0.23);
+}
+
+.waveform-key .key-onset i {
+  width: 2px;
+  height: 8px;
+  border-radius: 0;
+  background: #ff9b7b;
+}
+
+.waveform-key .key-texture i {
+  height: 2px;
+  background: #b3a8ff;
 }
 
 .waveform-state.is-hidden {
@@ -546,12 +721,12 @@ svg {
 
 .hover-time {
   position: absolute;
-  z-index: 2;
-  top: 9px;
-  min-width: 44px;
+  z-index: 4;
+  top: 8px;
+  min-width: 98px;
   padding: 4px 6px;
   transform: translate(-50%, -4px);
-  border-radius: 5px;
+  border-radius: 2px;
   background: #f8f7f2;
   color: var(--ink);
   font-size: 0.62rem;
@@ -560,6 +735,8 @@ svg {
   opacity: 0;
   pointer-events: none;
   text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
   transition:
     opacity 110ms ease,
     transform 110ms ease;
@@ -578,6 +755,7 @@ svg {
   font-size: 0.6rem;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
 .time-row time:last-child {
@@ -590,10 +768,23 @@ svg {
   letter-spacing: 0.13em;
 }
 
+.signal-readout {
+  display: grid;
+  gap: 4px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+}
+
+.signal-readout > span:last-child {
+  color: #aaa9a1;
+  font-size: 0.43rem;
+}
+
 .controls {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
-  padding-top: clamp(24px, 3.5vw, 36px);
+  padding-top: clamp(20px, 3vw, 28px);
   align-items: center;
   gap: 16px;
 }
@@ -670,7 +861,8 @@ svg {
   width: 34px;
   height: 34px;
   place-items: center;
-  border-radius: 50%;
+  border: 1px solid transparent;
+  border-radius: 2px;
   color: #aaa9a1;
   transition:
     background 150ms ease,
@@ -678,6 +870,7 @@ svg {
 }
 
 .control-button:hover {
+  border-color: #454842;
   background: #30302c;
   color: white;
 }
@@ -696,12 +889,12 @@ svg {
 
 .play-button {
   display: grid;
-  width: 58px;
-  height: 58px;
+  width: 50px;
+  height: 50px;
   padding: 0;
   place-items: center;
-  border: 0;
-  border-radius: 50%;
+  border: 1px solid #edffac;
+  border-radius: 3px;
   background: var(--lime);
   color: var(--ink);
   cursor: pointer;
@@ -709,7 +902,8 @@ svg {
 }
 
 .play-button:hover {
-  transform: scale(1.05);
+  background: #ddff65;
+  transform: translateY(-1px);
 }
 
 .play-button svg {
@@ -737,9 +931,10 @@ svg {
   height: 32px;
   padding-inline: 10px;
   border: 1px solid #4d4d47;
-  border-radius: 99px;
+  border-radius: 2px;
   background: transparent;
   color: #c7c6be;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 0.63rem;
   font-weight: 800;
   cursor: pointer;
@@ -753,8 +948,8 @@ svg {
 .workspace {
   display: grid;
   grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.45fr);
-  padding: 58px 0;
-  gap: clamp(24px, 4vw, 44px);
+  padding: 42px 0;
+  gap: clamp(20px, 3vw, 32px);
   border-top: 1px solid var(--line);
 }
 
@@ -763,24 +958,45 @@ svg {
 }
 
 .panel-title-row {
-  min-height: 62px;
-  padding-bottom: 18px;
+  min-height: 58px;
+  padding-bottom: 14px;
   border-bottom: 1px solid var(--line);
 }
 
 .panel-title-row h2,
 .upload-panel h2,
 .usage h2 {
-  font-size: clamp(1.55rem, 2.5vw, 2rem);
+  font-size: clamp(1.35rem, 2.1vw, 1.7rem);
 }
 
 .track-count {
   margin-bottom: 3px;
   color: var(--muted);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 0.6rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.12em;
+}
+
+.queue-columns {
+  display: grid;
+  grid-template-columns: 30px 78px minmax(0, 1fr) auto 34px;
+  min-height: 27px;
+  padding-inline: 6px;
+  align-items: center;
+  gap: clamp(10px, 2vw, 20px);
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.48rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.queue-columns span:nth-last-child(-n + 2) {
+  text-align: right;
 }
 
 .queue-item {
@@ -788,8 +1004,8 @@ svg {
   display: grid;
   grid-template-columns: 30px 78px minmax(0, 1fr) auto 34px;
   width: 100%;
-  min-height: 82px;
-  padding: 12px 5px;
+  min-height: 70px;
+  padding: 9px 6px;
   align-items: center;
   gap: clamp(10px, 2vw, 20px);
   border: 0;
@@ -797,14 +1013,11 @@ svg {
   background: transparent;
   cursor: pointer;
   text-align: left;
-  transition:
-    padding 150ms ease,
-    background 150ms ease;
+  transition: background 150ms ease;
 }
 
 .queue-item:hover,
 .queue-item.is-active {
-  padding-inline: 12px;
   background: var(--surface);
 }
 
@@ -818,6 +1031,7 @@ svg {
   font-size: 0.6rem;
   font-variant-numeric: tabular-nums;
   font-weight: 800;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
 .mini-wave {
@@ -830,7 +1044,7 @@ svg {
 .mini-wave i {
   width: 2px;
   max-height: 100%;
-  border-radius: 2px;
+  border-radius: 0;
   background: currentColor;
   opacity: 0.23;
 }
@@ -854,13 +1068,14 @@ svg {
 
 .queue-copy strong {
   margin-bottom: 4px;
-  font-size: 0.88rem;
+  font-size: 0.8rem;
   font-weight: 750;
 }
 
 .queue-copy > span {
   color: var(--muted);
-  font-size: 0.67rem;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.57rem;
 }
 
 .queue-play-mark {
@@ -869,7 +1084,8 @@ svg {
   height: 30px;
   place-items: center;
   border: 1px solid var(--line);
-  border-radius: 50%;
+  border-radius: 2px;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 0.5rem;
 }
 
@@ -882,11 +1098,11 @@ svg {
 
 .upload-panel {
   display: flex;
-  min-height: 330px;
+  min-height: 315px;
   padding: clamp(24px, 3vw, 34px);
-  border: 1px dashed #aaa89f;
-  border-radius: 14px;
-  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface);
   flex-direction: column;
   justify-content: flex-end;
   transition:
@@ -906,8 +1122,8 @@ svg {
   margin-bottom: auto;
   place-items: center;
   border: 1px solid #aaa89f;
-  border-radius: 10px;
-  background: var(--surface);
+  border-radius: 2px;
+  background: var(--surface-muted);
 }
 
 .upload-icon svg {
@@ -918,7 +1134,8 @@ svg {
 .upload-panel > p:not(.eyebrow) {
   margin: 17px 0 21px;
   color: #4f4e48;
-  font-size: 0.77rem;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.66rem;
   line-height: 1.55;
 }
 
@@ -927,9 +1144,10 @@ svg {
   min-height: 42px;
   padding: 0 16px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 2px;
   background: var(--ink);
   color: white;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 0.63rem;
   font-weight: 850;
   text-transform: uppercase;
@@ -944,6 +1162,7 @@ svg {
 .upload-panel small {
   margin-top: 12px;
   color: var(--muted);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 0.54rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -952,15 +1171,15 @@ svg {
 .usage {
   display: grid;
   grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-  padding: 58px 0 72px;
-  gap: clamp(24px, 4vw, 44px);
+  padding: 42px 0 56px;
+  gap: clamp(20px, 3vw, 32px);
   border-top: 1px solid var(--line);
 }
 
 .interaction-guide,
 .api-panel {
-  padding: clamp(26px, 3.5vw, 40px);
-  border-radius: 14px;
+  padding: clamp(24px, 3vw, 32px);
+  border-radius: 4px;
 }
 
 .interaction-guide {
@@ -969,7 +1188,7 @@ svg {
 }
 
 .shortcut-list {
-  margin: 30px 0 0;
+  margin: 24px 0 0;
   border-top: 1px solid var(--line);
 }
 
@@ -979,7 +1198,8 @@ svg {
   padding: 12px 0;
   gap: 18px;
   border-bottom: 1px solid var(--line);
-  font-size: 0.72rem;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.63rem;
 }
 
 .shortcut-list dt {
@@ -1003,6 +1223,7 @@ svg {
 .api-heading > span {
   margin-bottom: 3px;
   color: #aaa9a1;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 0.59rem;
   font-weight: 750;
   text-transform: uppercase;
@@ -1014,7 +1235,7 @@ svg {
   padding: 22px;
   overflow: auto;
   border: 1px solid #3f3f3a;
-  border-radius: 9px;
+  border-radius: 2px;
   background: #22221f;
   color: #d8d7cf;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
@@ -1035,7 +1256,8 @@ svg {
   max-width: 580px;
   margin: 0 0 20px;
   color: #b9b8b0;
-  font-size: 0.75rem;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.66rem;
   line-height: 1.55;
 }
 
@@ -1044,6 +1266,7 @@ svg {
   padding-bottom: 4px;
   border-bottom: 1px solid currentColor;
   color: var(--lime);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   font-size: 0.65rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -1052,7 +1275,7 @@ svg {
 
 .site-footer {
   display: flex;
-  padding: 26px var(--page-padding);
+  padding: 20px var(--page-padding);
   align-items: center;
   justify-content: space-between;
   gap: 30px;
@@ -1076,7 +1299,7 @@ svg {
   max-width: min(380px, calc(100vw - 36px));
   padding: 13px 17px;
   transform: translateY(16px);
-  border-radius: 9px;
+  border-radius: 2px;
   background: var(--ink);
   color: white;
   box-shadow: 0 12px 36px rgba(25, 25, 22, 0.25);
@@ -1103,6 +1326,7 @@ svg {
 
   .tool-facts {
     width: min(100%, 540px);
+    min-width: 0;
   }
 
   .player-card {
@@ -1132,7 +1356,11 @@ svg {
 
 @media (max-width: 680px) {
   .site-header {
-    min-height: 62px;
+    min-height: 56px;
+  }
+
+  .header-status {
+    display: none;
   }
 
   .header-actions a:first-child,
@@ -1141,11 +1369,11 @@ svg {
   }
 
   .intro {
-    padding-top: 43px;
+    padding-top: 28px;
   }
 
   .intro h1 {
-    font-size: clamp(2.7rem, 14vw, 4.2rem);
+    font-size: clamp(2rem, 10vw, 2.7rem);
   }
 
   .section-heading {
@@ -1161,15 +1389,46 @@ svg {
   }
 
   .track-art {
-    min-height: 210px;
+    min-height: 128px;
+    border-right: 0;
+    border-bottom: 1px solid #464943;
   }
 
-  .art-ring {
-    width: 180px;
+  .module-id {
+    top: 14px;
+    right: auto;
+    left: 14px;
+    display: grid;
+    width: 58px;
+  }
+
+  .module-id b {
+    padding-top: 7px;
+    font-size: 1.25rem;
+  }
+
+  .source-meter {
+    width: 112px;
+    height: 76px;
+    padding-block: 10px;
+  }
+
+  .source-readout {
+    right: 14px;
+    bottom: 29px;
+    left: auto;
+    width: 86px;
+  }
+
+  .module-state {
+    right: 14px;
+    bottom: 13px;
+    left: auto;
+    width: 86px;
   }
 
   .transport {
-    padding: 26px 20px 29px;
+    padding: 22px 16px 24px;
   }
 
   .now-playing h3 {
@@ -1177,7 +1436,7 @@ svg {
   }
 
   .waveform-wrap {
-    height: 155px;
+    height: 176px;
   }
 
   .controls {
@@ -1199,8 +1458,8 @@ svg {
   }
 
   .play-button {
-    width: 54px;
-    height: 54px;
+    width: 48px;
+    height: 48px;
   }
 
   .workspace,
@@ -1211,6 +1470,15 @@ svg {
   .queue-item {
     grid-template-columns: 26px 55px minmax(0, 1fr) 31px;
     gap: 10px;
+  }
+
+  .queue-columns {
+    grid-template-columns: 26px 55px minmax(0, 1fr) 31px;
+    gap: 10px;
+  }
+
+  .queue-columns span:nth-child(4) {
+    display: none;
   }
 
   .queue-item time {
@@ -1255,7 +1523,7 @@ svg {
     display: none;
   }
 
-  .audio-spec {
+  .signal-readout {
     display: none;
   }
 
@@ -1265,6 +1533,14 @@ svg {
 
   .queue-item {
     grid-template-columns: 24px minmax(0, 1fr) 31px;
+  }
+
+  .queue-columns {
+    grid-template-columns: 24px minmax(0, 1fr) 31px;
+  }
+
+  .queue-columns span:nth-child(2) {
+    display: none;
   }
 
   .mini-wave {

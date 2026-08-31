@@ -8,7 +8,7 @@ device.
 
 ## Highlights
 
-- Real waveform analysis with the Web Audio API
+- Detailed Web Audio analysis with signed peaks, RMS energy, onset cues, and signal texture
 - Click, drag, touch, and keyboard seeking
 - Playlist controls, ±10 second jumps, volume, mute, and five playback speeds
 - Local drag-and-drop uploads using object URLs—files are never sent to a server
@@ -19,6 +19,9 @@ device.
 The original project was a compact JavaScript experiment. Version 2 replaces its custom audio
 clock, prototype classes, XHR loading, and layered canvases with typed modules, native media
 playback, `fetch`, pointer events, `ResizeObserver`, and lifecycle-safe animation and loading.
+Waveform work is bounded for long recordings, reduced to the rendered width with extrema-preserving
+aggregation, and cached in static canvas layers so playback frames only composite the progress state
+and cursor.
 
 ## Development
 

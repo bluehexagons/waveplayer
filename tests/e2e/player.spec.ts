@@ -25,10 +25,19 @@ function createSilentWave(): Buffer {
 test('loads a real waveform and exposes complete transport controls', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.getByRole('heading', { name: 'Waveform audio player' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Audio inspection console' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Scales in Motion' })).toBeVisible();
   await expect(page.locator('[data-queue] .queue-item')).toHaveCount(3);
   await expect(page.locator('[data-waveform-state]')).toHaveClass(/is-hidden/, { timeout: 15_000 });
+  const waveform = page.getByRole('slider', { name: 'Seek through track' });
+  await expect(waveform).toHaveAttribute('data-waveform-detail', 'ready');
+  await expect(waveform).toHaveAttribute('data-analysis-bins', '4096');
+  await expect(page.locator('.waveform-key')).toBeVisible();
+  await waveform.hover({ position: { x: 120, y: 80 } });
+  await expect(page.locator('[data-hover-time]')).toHaveText(
+    /\d+:\d{2} · (active|dense|loud|onset|quiet)/,
+  );
+  await page.mouse.move(0, 0);
 
   const queueTrack = page.locator('.queue-item[data-track-id="creepy-piano-no-2"]');
   await expect(queueTrack).toHaveAttribute('aria-label', 'Play Creepy Piano No. 2');
@@ -60,7 +69,6 @@ test('loads a real waveform and exposes complete transport controls', async ({ p
   await expect(page.getByRole('button', { name: 'Mute' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
-  const waveform = page.getByRole('slider', { name: 'Seek through track' });
   const maximum = await waveform.getAttribute('aria-valuemax');
   await waveform.focus();
   await waveform.press('End');
@@ -89,11 +97,11 @@ test('remains usable at a narrow mobile viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
 
-  await expect(page.getByRole('heading', { name: 'Waveform audio player' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Audio inspection console' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
 
   const dropZone = page.locator('[data-drop-zone]');
-  const dropZoneChild = dropZone.getByRole('heading', { name: 'Try your own audio' });
+  const dropZoneChild = dropZone.getByRole('heading', { name: 'Load local source' });
   await dropZone.dispatchEvent('dragenter');
   await dropZoneChild.dispatchEvent('dragenter');
   await dropZoneChild.dispatchEvent('dragleave');
