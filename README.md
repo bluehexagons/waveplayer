@@ -28,13 +28,29 @@ and cursor.
 Requires Node.js 22.12 or newer.
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
 The project uses the stable TypeScript 7 native compiler and Vite 8. Production builds use
 relative asset paths, so the generated site can be hosted from a subdirectory such as GitHub
 Pages.
+
+Basaltwater on Debian is the reference development environment. Node 24 is pinned
+in `.nvmrc` and used by CI; select it with `nvm use`, or run
+`basaltw node exec -- npm run check`. Native Node.js commands remain supported
+without Basaltwater.
+
+For authorized device testing through trusted HTTPS, follow the shared
+`basaltwater-web-gateway` skill and run:
+
+```sh
+basaltwater-web preview start waveplayer --project .
+```
+
+The gateway keeps the upstream on loopback. Without it, use `npm run dev` or
+`npm run preview` and arrange HTTPS separately when needed. Uploaded audio stays
+in the browser; preserve source recordings and demo media during cleanup.
 
 ## Quality checks
 
@@ -47,6 +63,9 @@ npm run build      # Type-check and production build
 
 End-to-end tests cover waveform decoding, track changes, transport controls, local file loading,
 narrow mobile layouts, automated accessibility checks, and runtime or asset-loading errors.
+Local E2E runs use an installed Google Chrome, including Basaltwater's managed
+browser. CI installs Playwright's matching Chromium before running the same suite.
+Pull requests run checks, tests, and builds; only main publishes GitHub Pages.
 
 ## Keyboard controls
 
