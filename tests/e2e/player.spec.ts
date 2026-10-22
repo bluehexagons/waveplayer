@@ -40,17 +40,23 @@ test('loads a real waveform and exposes complete transport controls', async ({ p
   await page.mouse.move(0, 0);
 
   const queueTrack = page.locator('.queue-item[data-track-id="creepy-piano-no-2"]');
-  await expect(queueTrack).toHaveAttribute('aria-label', 'Play Creepy Piano No. 2');
+  await expect(queueTrack).toHaveAccessibleName(
+    /^Play Creepy Piano No\. 2 02 Creepy Piano No\. 2 Loren Crain/,
+  );
   await queueTrack.click();
   await expect(page.getByRole('heading', { name: 'Creepy Piano No. 2' })).toBeVisible();
   await expect(page).toHaveURL(/#creepy-piano-no-2$/);
   await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
   await expect(queueTrack).toBeFocused();
-  await expect(queueTrack).toHaveAttribute('aria-label', 'Pause current track, Creepy Piano No. 2');
+  await expect(queueTrack).toHaveAccessibleName(
+    /^Pause current track, Creepy Piano No\. 2 02 Creepy Piano No\. 2 Loren Crain/,
+  );
 
   await queueTrack.click();
   await expect(queueTrack).toBeFocused();
-  await expect(queueTrack).toHaveAttribute('aria-label', 'Play current track, Creepy Piano No. 2');
+  await expect(queueTrack).toHaveAccessibleName(
+    /^Play current track, Creepy Piano No\. 2 02 Creepy Piano No\. 2 Loren Crain/,
+  );
   await page.getByRole('button', { name: 'Play', exact: true }).click();
 
   await page.getByRole('button', { name: 'Playback speed, 1 times' }).click();

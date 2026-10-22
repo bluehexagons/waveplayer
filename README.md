@@ -25,7 +25,7 @@ and cursor.
 
 ## Development
 
-Requires Node.js 22.12 or newer.
+Requires Node.js 24.22.1+ within 24.x (LTS) or 26.12.1+ within 26.x (Current).
 
 ```bash
 npm ci
@@ -69,14 +69,14 @@ Pull requests run checks, tests, and builds; only main publishes GitHub Pages.
 
 ## Keyboard controls
 
-| Key | Action |
-| --- | --- |
-| <kbd>Space</kbd> or <kbd>K</kbd> | Play or pause |
-| <kbd>J</kbd> / <kbd>L</kbd> | Back / forward 10 seconds |
-| <kbd>M</kbd> | Mute or unmute |
-| <kbd>←</kbd> / <kbd>→</kbd> on the waveform | Seek 5 seconds |
-| <kbd>Shift</kbd> + <kbd>←</kbd> / <kbd>→</kbd> | Seek 15 seconds |
-| <kbd>Home</kbd> / <kbd>End</kbd> on the waveform | Jump to start / end |
+| Key                                              | Action                    |
+| ------------------------------------------------ | ------------------------- |
+| <kbd>Space</kbd> or <kbd>K</kbd>                 | Play or pause             |
+| <kbd>J</kbd> / <kbd>L</kbd>                      | Back / forward 10 seconds |
+| <kbd>M</kbd>                                     | Mute or unmute            |
+| <kbd>←</kbd> / <kbd>→</kbd> on the waveform      | Seek 5 seconds            |
+| <kbd>Shift</kbd> + <kbd>←</kbd> / <kbd>→</kbd>   | Seek 15 seconds           |
+| <kbd>Home</kbd> / <kbd>End</kbd> on the waveform | Jump to start / end       |
 
 ## Structure
 

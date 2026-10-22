@@ -135,6 +135,10 @@ function renderQueue(): void {
     button.dataset.trackId = track.id;
     button.style.setProperty('--track-accent', track.accent);
 
+    const action = document.createElement('span');
+    action.className = 'sr-only';
+    action.dataset.queueAction = '';
+
     const number = document.createElement('span');
     number.className = 'queue-number';
     number.textContent = (index + 1).toString().padStart(2, '0');
@@ -159,7 +163,7 @@ function renderQueue(): void {
     playMark.setAttribute('aria-hidden', 'true');
     playMark.textContent = '▶';
 
-    button.append(number, createMiniWave(index), copy, duration, playMark);
+    button.append(action, number, createMiniWave(index), copy, duration, playMark);
     button.addEventListener('click', () => {
       if (index === player.snapshot.index) {
         void player.toggle();
@@ -196,12 +200,12 @@ function syncQueueState(snapshot: PlayerSnapshot, force = false): void {
     } else {
       button.removeAttribute('aria-current');
     }
-    button.setAttribute(
-      'aria-label',
-      isCurrent
+    const action = button.querySelector<HTMLElement>('[data-queue-action]');
+    if (action) {
+      action.textContent = isCurrent
         ? `${snapshot.paused ? 'Play' : 'Pause'} current track, ${track.title}`
-        : `Play ${track.title}`,
-    );
+        : `Play ${track.title}`;
+    }
     const playMark = button.querySelector<HTMLElement>('.queue-play-mark');
     if (playMark) {
       playMark.textContent = isCurrent && !snapshot.paused ? 'Ⅱ' : '▶';
