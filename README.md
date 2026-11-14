@@ -25,7 +25,7 @@ and cursor.
 
 ## Development
 
-Requires Node.js 24.22.1+ within 24.x (LTS) or 26.12.1+ within 26.x (Current).
+Requires Node.js 24.22.3+ within 24.x (LTS) or 26.13.1+ within 26.x (Current).
 
 ```bash
 npm ci
