@@ -43,12 +43,8 @@
     <main class="demo-page" id="top">
       <section class="intro" aria-labelledby="page-title">
         <div class="intro-copy">
-          <p class="eyebrow">Reference interface / WP-07</p>
           <h1 id="page-title">Audio inspection console</h1>
-          <p>
-            A working browser player for inspecting timing, energy, onsets, and texture. Use a demo
-            source or decode a local file without uploading it.
-          </p>
+          <p>Inspect the waveform of a demo track or open an audio file from your device.</p>
         </div>
         <dl class="tool-facts">
           <div><dt>Engine</dt><dd>Web Audio API</dd></div>
@@ -57,15 +53,7 @@
         </dl>
       </section>
 
-      <section class="player-section" id="player" aria-labelledby="player-heading">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Module 01 / Player</p>
-            <h2 id="player-heading">Playback + signal</h2>
-          </div>
-          <p>Envelope / RMS energy / onset detection / texture. Click or drag to seek.</p>
-        </div>
-
+      <section class="player-section" id="player" aria-label="Audio player">
         <div class="player-card" data-playing="false">
           <div class="track-art" aria-hidden="true">
             <div class="art-grid"></div>
@@ -73,18 +61,13 @@
             <div class="source-meter">
               <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
             </div>
-            <div class="source-readout">
-              <span>Input buffer</span>
-              <strong>PCM / A·B</strong>
-            </div>
-            <p class="module-state"><i></i> Decoded</p>
           </div>
 
           <div class="transport">
             <div class="now-playing">
               <div>
-                <p class="status-label"><i aria-hidden="true"></i> Now playing</p>
-                <h3 data-track-title>Scales in Motion</h3>
+                <p class="status-label"><i aria-hidden="true"></i> <span data-track-status>Loading track</span></p>
+                <h2 data-track-title>Scales in Motion</h2>
                 <p data-track-artist>Loren Crain · Piano study</p>
               </div>
               <div class="track-actions">
@@ -139,27 +122,11 @@
               <time data-current-time>0:00</time>
               <div class="signal-readout">
                 <span class="audio-spec" data-audio-spec>Loading audio details</span>
-                <span>Peak · RMS · Onset · Texture</span>
               </div>
               <time data-duration>0:00</time>
             </div>
 
             <div class="controls">
-              <div class="volume-control">
-                <button class="plain-button volume-button" data-mute type="button" aria-label="Mute">
-                  <svg class="volume-on" aria-hidden="true" viewBox="0 0 24 24">
-                    <path d="M11 5 6.5 9H3v6h3.5l4.5 4V5Zm4 4a4 4 0 0 1 0 6m2.5-8.5a8 8 0 0 1 0 11" />
-                  </svg>
-                  <svg class="volume-off" aria-hidden="true" viewBox="0 0 24 24">
-                    <path d="M11 5 6.5 9H3v6h3.5l4.5 4V5Zm5 5 5 5m0-5-5 5" />
-                  </svg>
-                </button>
-                <label>
-                  <span class="sr-only">Volume</span>
-                  <input data-volume type="range" min="0" max="1" value="0.82" step="0.01" />
-                </label>
-              </div>
-
               <div class="transport-buttons">
                 <button class="plain-button control-button" data-previous type="button" aria-label="Previous track">
                   <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 5v14m13-13-9 6 9 6V6Z" /></svg>
@@ -181,7 +148,33 @@
                 </button>
               </div>
 
+              <div class="volume-control">
+                <button class="plain-button volume-button" data-mute type="button" aria-label="Mute">
+                  <svg class="volume-on" aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M11 5 6.5 9H3v6h3.5l4.5 4V5Zm4 4a4 4 0 0 1 0 6m2.5-8.5a8 8 0 0 1 0 11" />
+                  </svg>
+                  <svg class="volume-off" aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M11 5 6.5 9H3v6h3.5l4.5 4V5Zm5 5 5 5m0-5-5 5" />
+                  </svg>
+                </button>
+                <label>
+                  <span class="sr-only">Volume</span>
+                  <input data-volume type="range" min="0" max="1" value="0.82" step="0.01" />
+                </label>
+              </div>
+
               <button class="rate-button" data-rate type="button" aria-label="Playback speed, 1 times">1×</button>
+            </div>
+
+            <div class="local-source" data-drop-zone>
+              <button class="upload-button" data-upload-button type="button" aria-describedby="local-source-status">
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 16V4m0 0L7 9m5-5 5 5M5 14v5h14v-5" /></svg>
+                Open audio
+              </button>
+              <input data-file-input type="file" accept="audio/*,.aac,.flac,.m4a,.mp3,.oga,.ogg,.opus,.wav" hidden />
+              <p class="local-source-status" id="local-source-status" data-local-status role="status">
+                Drop an audio file here. It stays on your device.
+              </p>
             </div>
           </div>
         </div>
@@ -201,21 +194,9 @@
           </div>
           <div class="queue" data-queue></div>
         </div>
-
-        <aside class="upload-panel" aria-labelledby="upload-heading" data-drop-zone>
-          <div class="upload-icon" aria-hidden="true">
-            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 16V4m0 0L7 9m5-5 5 5M5 14v5h14v-5" /></svg>
-          </div>
-          <p class="eyebrow">Input bay / Local file</p>
-          <h2 id="upload-heading">Load local source</h2>
-          <p>Drop or select audio. Decode and analysis run on this device; no transfer occurs.</p>
-          <button class="upload-button" data-upload-button type="button">Select audio file</button>
-          <input data-file-input type="file" accept="audio/*,.ogg,.mp3,.wav,.m4a,.flac" hidden />
-          <small>OGG, MP3, WAV, M4A, FLAC</small>
-        </aside>
       </section>
 
-      <section class="usage" id="usage" aria-labelledby="usage-heading">
+      <section class="usage" id="usage" aria-label="Reference">
         <article class="interaction-guide">
           <p class="eyebrow">Module 03 / Controls</p>
           <h2 id="usage-heading">Control map</h2>

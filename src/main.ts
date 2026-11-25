@@ -55,6 +55,7 @@ const elements = {
   trackNumber: query<HTMLElement>('[data-track-number]'),
   trackTitle: query<HTMLElement>('[data-track-title]'),
   trackArtist: query<HTMLElement>('[data-track-artist]'),
+  trackStatus: query<HTMLElement>('[data-track-status]'),
   currentTime: query<HTMLTimeElement>('[data-current-time]'),
   duration: query<HTMLTimeElement>('[data-duration]'),
   audioSpec: query<HTMLElement>('[data-audio-spec]'),
@@ -73,12 +74,15 @@ const elements = {
   uploadButton: query<HTMLButtonElement>('[data-upload-button]'),
   fileInput: query<HTMLInputElement>('[data-file-input]'),
   dropZone: query<HTMLElement>('[data-drop-zone]'),
+  localStatus: query<HTMLElement>('[data-local-status]'),
   toast: query<HTMLElement>('[data-toast]'),
 };
 
+const initialUrl = new URL(window.location.href);
+const linkedTrackId = initialUrl.searchParams.get('track') ?? initialUrl.hash.slice(1);
 const initialTrackIndex = Math.max(
   0,
-  tracks.findIndex((track) => `#${track.id}` === window.location.hash),
+  tracks.findIndex((track) => track.id === linkedTrackId),
 );
 const player = new WavePlayer(tracks, initialTrackIndex);
 const knownDurations = new Map<string, number>();
@@ -86,6 +90,7 @@ const localUrls = new Set<string>();
 let toastTimer: number | null = null;
 let queueStateKey = '';
 let dragDepth = 0;
+let localFileCheck: AbortController | null = null;
 
 const waveform = new WaveformView({
   canvas: query<HTMLCanvasElement>('[data-waveform]'),
@@ -95,6 +100,9 @@ const waveform = new WaveformView({
   onSeek: (time) => player.seek(time),
   onToggle: () => void player.toggle(),
   onAnalysis: (analysis) => updateAudioAnalysis(analysis),
+  onAnalysisError: () => {
+    elements.audioSpec.textContent = 'Analysis unavailable';
+  },
 });
 
 function showToast(message: string): void {
@@ -231,8 +239,8 @@ function updateAudioAnalysis(analysis: AudioAnalysis): void {
     analysis.channels === 1
       ? 'MONO'
       : `${analysis.channels === 2 ? 'STEREO' : `${analysis.channels} CH`}`;
-  const sampleRate = `${(analysis.sampleRate / 1_000).toFixed(1).replace('.0', '')} KHZ`;
-  elements.audioSpec.textContent = `${channelLabel} · ${sampleRate}`;
+  const sampleRate = Number((analysis.sampleRate / 1_000).toFixed(1));
+  elements.audioSpec.textContent = `${channelLabel} · ${sampleRate} kHz analysis`;
   updateQueueDuration(track.id, analysis.duration);
 }
 
@@ -245,12 +253,28 @@ function handleTrackChange(track: Track, index: number): void {
   elements.download.href = track.src;
   elements.download.download = track.downloadName ?? track.src.split('/').at(-1) ?? track.title;
   document.title = `${track.title} — Waveplayer`;
-  window.history.replaceState(null, '', `#${track.id}`);
   void waveform.load(track.src);
+}
+
+function updateTrackUrl(track: Track): void {
+  const url = new URL(window.location.href);
+  if (tracks.some(({ id }) => `#${id}` === url.hash)) {
+    url.hash = '';
+  }
+  if (track.local) {
+    url.searchParams.delete('track');
+  } else {
+    url.searchParams.set('track', track.id);
+  }
+  window.history.replaceState(null, '', url);
 }
 
 function handleSnapshot(snapshot: PlayerSnapshot): void {
   const isPlaying = !snapshot.paused;
+  const status = isPlaying ? 'Playing' : snapshot.ready ? 'Paused' : 'Loading track';
+  if (elements.trackStatus.textContent !== status) {
+    elements.trackStatus.textContent = status;
+  }
   elements.playerCard.dataset.playing = String(isPlaying);
   elements.play.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
   elements.currentTime.textContent = formatTime(snapshot.currentTime);
@@ -298,16 +322,57 @@ function isAudioFile(file: File): boolean {
   );
 }
 
+function showLocalStatus(message: string, error = false): void {
+  elements.localStatus.textContent = message;
+  elements.localStatus.toggleAttribute('data-error', error);
+}
+
+async function canPlayLocalSource(source: string, signal: AbortSignal): Promise<boolean> {
+  const probe = new Audio();
+  probe.preload = 'auto';
+  const listeners = new AbortController();
+  try {
+    return await new Promise<boolean>((resolve) => {
+      const options = { once: true, signal: listeners.signal };
+      probe.addEventListener('canplay', () => resolve(true), options);
+      probe.addEventListener('error', () => resolve(false), options);
+      signal.addEventListener('abort', () => resolve(false), options);
+      probe.src = source;
+    });
+  } finally {
+    listeners.abort();
+    probe.removeAttribute('src');
+    probe.load();
+  }
+}
+
 async function loadLocalFile(file: File): Promise<void> {
+  localFileCheck?.abort();
+  localFileCheck = null;
   if (!isAudioFile(file)) {
-    showToast('Choose a supported audio file.');
+    showLocalStatus('Choose a supported audio file, such as MP3, WAV, or OGG.', true);
     return;
   }
 
+  const check = new AbortController();
+  localFileCheck = check;
+  showLocalStatus(`Checking “${file.name}”…`);
   const objectUrl = URL.createObjectURL(file);
+  const signal = AbortSignal.any([check.signal, AbortSignal.timeout(10_000)]);
+  const playable = await canPlayLocalSource(objectUrl, signal);
+  if (check.signal.aborted || !playable) {
+    URL.revokeObjectURL(objectUrl);
+    if (!check.signal.aborted) {
+      localFileCheck = null;
+      showLocalStatus(`Could not open “${file.name}”. Choose a different audio file.`, true);
+    }
+    return;
+  }
+
+  localFileCheck = null;
   localUrls.add(objectUrl);
   const localTrack: Track = {
-    id: `local-${crypto.randomUUID()}`,
+    id: `local-${player.trackList.length}`,
     title: filenameToTitle(file.name),
     artist: 'Your library',
     subtitle: 'Local audio',
@@ -320,9 +385,7 @@ async function loadLocalFile(file: File): Promise<void> {
   const index = player.addTrack(localTrack);
   renderQueue();
   await player.select(index, false);
-  if ((await player.play()) && player.currentTrack === localTrack) {
-    showToast(`Loaded “${localTrack.title}” locally.`);
-  }
+  showLocalStatus(`Opened “${file.name}” on this device.`);
 }
 
 elements.play.addEventListener('click', () => void player.toggle());
@@ -347,7 +410,8 @@ elements.copy.addEventListener('click', async () => {
     return;
   }
   const url = new URL(window.location.href);
-  url.hash = player.currentTrack.id;
+  url.searchParams.set('track', player.currentTrack.id);
+  url.hash = 'player';
   try {
     await navigator.clipboard.writeText(url.href);
     showToast('Track link copied.');
@@ -432,7 +496,10 @@ document.addEventListener('keydown', (event) => {
 });
 
 player.on('change', handleSnapshot);
-player.on('trackchange', ({ track, index }) => handleTrackChange(track, index));
+player.on('trackchange', ({ track, index }) => {
+  updateTrackUrl(track);
+  handleTrackChange(track, index);
+});
 player.on('error', (message) => {
   showToast(player.currentTrack.local ? 'This audio file could not be played.' : message);
 });
@@ -451,6 +518,7 @@ window.addEventListener('pagehide', (event) => {
   if (toastTimer !== null) {
     window.clearTimeout(toastTimer);
   }
+  localFileCheck?.abort();
   waveform.destroy();
   player.destroy();
   for (const url of localUrls) {

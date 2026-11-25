@@ -3,7 +3,6 @@
   --ink: #181a18;
   --paper: #ecece7;
   --surface: #f7f7f3;
-  --surface-muted: #e2e3de;
   --line: #bfc1ba;
   --muted: #5e615c;
   --lime: #cdf63c;
@@ -288,38 +287,12 @@ svg {
   border-top: 1px solid var(--line);
 }
 
-.section-heading,
 .panel-title-row,
 .api-heading {
   display: flex;
   align-items: end;
   justify-content: space-between;
   gap: 30px;
-}
-
-.section-heading {
-  margin-bottom: 16px;
-}
-
-.section-heading h2,
-.panel-title-row h2,
-.upload-panel h2,
-.usage h2 {
-  margin: 0;
-  font-size: clamp(1.5rem, 2.6vw, 2rem);
-  line-height: 1;
-  letter-spacing: -0.035em;
-}
-
-.section-heading > p {
-  max-width: 500px;
-  margin: 0 0 3px;
-  color: var(--muted);
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 0.61rem;
-  line-height: 1.5;
-  text-transform: uppercase;
-  letter-spacing: 0.045em;
 }
 
 .player-card {
@@ -458,50 +431,6 @@ svg {
   }
 }
 
-.source-readout,
-.module-state {
-  position: absolute;
-  right: 16px;
-  left: 16px;
-  margin: 0;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  text-transform: uppercase;
-}
-
-.source-readout {
-  bottom: 48px;
-  display: grid;
-  padding-top: 9px;
-  gap: 5px;
-  border-top: 1px solid rgba(24, 26, 24, 0.5);
-}
-
-.source-readout span,
-.module-state {
-  font-size: 0.48rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-}
-
-.source-readout strong {
-  font-size: 0.59rem;
-  letter-spacing: 0.08em;
-}
-
-.module-state {
-  bottom: 18px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.module-state i {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #608300;
-}
-
 .transport {
   display: flex;
   min-width: 0;
@@ -516,6 +445,10 @@ svg {
   justify-content: space-between;
   gap: 22px;
   margin-bottom: 20px;
+}
+
+.now-playing > div:first-child {
+  min-width: 0;
 }
 
 .status-label {
@@ -535,10 +468,11 @@ svg {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--lime);
+  background: currentColor;
 }
 
 .player-card[data-playing="true"] .status-label i {
+  background: var(--lime);
   animation: status-pulse 1.25s ease-in-out infinite;
 }
 
@@ -548,7 +482,7 @@ svg {
   }
 }
 
-.now-playing h3 {
+.now-playing h2 {
   max-width: 650px;
   margin: 0 0 6px;
   overflow: hidden;
@@ -560,7 +494,7 @@ svg {
   white-space: nowrap;
 }
 
-.now-playing h3 + p {
+.now-playing h2 + p {
   margin: 0;
   color: #aaa9a1;
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
@@ -575,8 +509,8 @@ svg {
 
 .icon-button {
   display: grid;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   place-items: center;
   border: 1px solid #4d4d47;
@@ -653,7 +587,7 @@ svg {
   border-radius: 2px;
   background: rgba(29, 29, 26, 0.78);
   color: #aaa9a1;
-  font-size: 0.48rem;
+  font-size: 0.63rem;
   font-weight: 750;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -769,22 +703,15 @@ svg {
 }
 
 .signal-readout {
-  display: grid;
-  gap: 4px;
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.09em;
 }
 
-.signal-readout > span:last-child {
-  color: #aaa9a1;
-  font-size: 0.43rem;
-}
-
 .controls {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  padding-top: clamp(20px, 3vw, 28px);
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  padding-top: 12px;
   align-items: center;
   gap: 16px;
 }
@@ -803,6 +730,10 @@ svg {
 }
 
 .volume-button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
   color: #c7c6be;
 }
 
@@ -823,11 +754,13 @@ svg {
 [data-volume] {
   --volume: 82%;
   width: clamp(60px, 7vw, 92px);
-  height: 3px;
+  height: 32px;
   margin: 0;
   appearance: none;
-  border-radius: 99px;
-  background: linear-gradient(to right, #f8f7f2 var(--volume), #55554f var(--volume));
+  vertical-align: middle;
+  background:
+    linear-gradient(to right, #f8f7f2 var(--volume), #55554f var(--volume)) center / 100% 3px
+    no-repeat;
   cursor: pointer;
 }
 
@@ -851,15 +784,15 @@ svg {
 .transport-buttons {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: clamp(7px, 1.5vw, 16px);
 }
 
 .control-button {
   position: relative;
   display: grid;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   place-items: center;
   border: 1px solid transparent;
   border-radius: 2px;
@@ -882,7 +815,7 @@ svg {
 
 .seek-button span {
   position: absolute;
-  top: 11px;
+  top: 16px;
   font-size: 0.43rem;
   font-weight: 800;
 }
@@ -928,7 +861,7 @@ svg {
 .rate-button {
   justify-self: end;
   min-width: 45px;
-  height: 32px;
+  height: 44px;
   padding-inline: 10px;
   border: 1px solid #4d4d47;
   border-radius: 2px;
@@ -947,7 +880,6 @@ svg {
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.45fr);
   padding: 42px 0;
   gap: clamp(20px, 3vw, 32px);
   border-top: 1px solid var(--line);
@@ -964,7 +896,6 @@ svg {
 }
 
 .panel-title-row h2,
-.upload-panel h2,
 .usage h2 {
   font-size: clamp(1.35rem, 2.1vw, 1.7rem);
 }
@@ -1096,76 +1027,57 @@ svg {
   color: white;
 }
 
-.upload-panel {
+.local-source {
   display: flex;
-  min-height: 315px;
-  padding: clamp(24px, 3vw, 34px);
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  background: var(--surface);
-  flex-direction: column;
-  justify-content: flex-end;
-  transition:
-    border-color 150ms ease,
-    background 150ms ease;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 8px;
+  border: 1px dashed #555951;
+  border-radius: 3px;
 }
 
-.upload-panel.is-dragging {
-  border-color: var(--violet);
-  background: #e7e2ff;
-}
-
-.upload-icon {
-  display: grid;
-  width: 44px;
-  height: 44px;
-  margin-bottom: auto;
-  place-items: center;
-  border: 1px solid #aaa89f;
-  border-radius: 2px;
-  background: var(--surface-muted);
-}
-
-.upload-icon svg {
-  width: 20px;
-  height: 20px;
-}
-
-.upload-panel > p:not(.eyebrow) {
-  margin: 17px 0 21px;
-  color: #4f4e48;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 0.66rem;
-  line-height: 1.55;
+.local-source.is-dragging {
+  border-color: var(--lime);
+  background: #282f1c;
 }
 
 .upload-button {
-  width: fit-content;
-  min-height: 42px;
-  padding: 0 16px;
-  border: 0;
+  display: inline-flex;
+  min-height: 44px;
+  padding-inline: 12px;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  border: 1px solid #62665d;
   border-radius: 2px;
-  background: var(--ink);
-  color: white;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 0.63rem;
-  font-weight: 850;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  background: #272a25;
+  color: #f8f7f2;
+  font-size: 0.78rem;
+  font-weight: 750;
   cursor: pointer;
 }
 
 .upload-button:hover {
-  background: #353530;
+  border-color: var(--lime);
 }
 
-.upload-panel small {
-  margin-top: 12px;
-  color: var(--muted);
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  font-size: 0.54rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+.upload-button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.local-source-status {
+  min-width: 0;
+  margin: 0;
+  color: #c7c6be;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.local-source-status[data-error] {
+  color: #ffb39f;
 }
 
 .usage {
@@ -1178,6 +1090,7 @@ svg {
 
 .interaction-guide,
 .api-panel {
+  min-width: 0;
   padding: clamp(24px, 3vw, 32px);
   border-radius: 4px;
 }
@@ -1337,24 +1250,12 @@ svg {
     padding: 30px;
   }
 
-  .volume-control input {
-    display: none;
-  }
-
-  .workspace {
-    grid-template-columns: 1fr;
-  }
-
-  .upload-panel {
-    min-height: 280px;
-  }
-
   .usage {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
-@media (max-width: 680px) {
+@media (max-width: 760px) {
   .site-header {
     min-height: 56px;
   }
@@ -1363,103 +1264,73 @@ svg {
     display: none;
   }
 
-  .header-actions a:first-child,
-  .header-actions a:nth-child(2) {
+  .header-actions a:first-child {
     display: none;
   }
 
   .intro {
-    padding-top: 28px;
+    padding-block: 16px;
   }
 
   .intro h1 {
-    font-size: clamp(2rem, 10vw, 2.7rem);
+    font-size: clamp(1.65rem, 6vw, 2.4rem);
   }
 
-  .section-heading {
-    display: block;
+  .intro-copy > p:last-child {
+    margin-top: 8px;
   }
 
-  .section-heading > p {
-    margin-top: 14px;
-  }
-
-  .player-card {
-    grid-template-columns: 1fr;
-  }
-
+  .tool-facts,
   .track-art {
-    min-height: 128px;
-    border-right: 0;
-    border-bottom: 1px solid #464943;
-  }
-
-  .module-id {
-    top: 14px;
-    right: auto;
-    left: 14px;
-    display: grid;
-    width: 58px;
-  }
-
-  .module-id b {
-    padding-top: 7px;
-    font-size: 1.25rem;
-  }
-
-  .source-meter {
-    width: 112px;
-    height: 76px;
-    padding-block: 10px;
-  }
-
-  .source-readout {
-    right: 14px;
-    bottom: 29px;
-    left: auto;
-    width: 86px;
-  }
-
-  .module-state {
-    right: 14px;
-    bottom: 13px;
-    left: auto;
-    width: 86px;
-  }
-
-  .transport {
-    padding: 22px 16px 24px;
-  }
-
-  .now-playing h3 {
-    max-width: 66vw;
-  }
-
-  .waveform-wrap {
-    height: 176px;
-  }
-
-  .controls {
-    grid-template-columns: 32px 1fr 42px;
-    gap: 8px;
-  }
-
-  .transport-buttons {
-    gap: 4px;
-  }
-
-  .control-button:first-child,
-  .control-button:last-child {
     display: none;
   }
 
-  .volume-control {
-    gap: 0;
+  .player-section {
+    padding-block: 12px 24px;
+  }
+
+  .player-card {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  .transport {
+    padding: 14px 12px;
+  }
+
+  .now-playing {
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .status-label {
+    margin-bottom: 6px;
+  }
+
+  .waveform-wrap {
+    height: clamp(108px, 32vw, 160px);
+  }
+
+  .controls {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 8px;
+    padding-top: 8px;
+  }
+
+  .transport-buttons {
+    grid-column: 1 / -1;
+    justify-content: center;
+    gap: 4px;
   }
 
   .play-button {
     width: 48px;
     height: 48px;
+  }
+
+  .local-source {
+    margin-top: 8px;
+    padding: 4px;
   }
 
   .workspace,
@@ -1514,21 +1385,12 @@ svg {
     font-size: 0.64rem;
   }
 
-  .now-playing h3 {
-    max-width: 58vw;
-    font-size: 1.55rem;
+  .intro h1 {
+    font-size: clamp(1.4rem, 6.3vw, 1.65rem);
   }
 
-  .track-actions .icon-button:first-child {
-    display: none;
-  }
-
-  .signal-readout {
-    display: none;
-  }
-
-  .time-row {
-    grid-template-columns: 1fr 1fr;
+  .now-playing h2 {
+    font-size: clamp(1.2rem, 5.5vw, 1.55rem);
   }
 
   .queue-item {
@@ -1548,8 +1410,7 @@ svg {
   }
 
   .interaction-guide,
-  .api-panel,
-  .upload-panel {
+  .api-panel {
     padding: 24px;
   }
 }

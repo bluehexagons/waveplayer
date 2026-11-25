@@ -7,6 +7,7 @@ interface WaveformViewOptions {
   readonly stateElement: HTMLElement;
   readonly messageElement: HTMLElement;
   readonly onAnalysis: (analysis: AudioAnalysis) => void;
+  readonly onAnalysisError?: () => void;
   readonly onSeek: (time: number) => void;
   readonly onToggle: () => void;
 }
@@ -77,6 +78,7 @@ export class WaveformView {
   private readonly stateElement: HTMLElement;
   private readonly messageElement: HTMLElement;
   private readonly onAnalysis: (analysis: AudioAnalysis) => void;
+  private readonly onAnalysisError: (() => void) | undefined;
   private readonly onSeek: (time: number) => void;
   private readonly onToggle: () => void;
   private readonly eventController = new AbortController();
@@ -106,6 +108,7 @@ export class WaveformView {
     this.stateElement = options.stateElement;
     this.messageElement = options.messageElement;
     this.onAnalysis = options.onAnalysis;
+    this.onAnalysisError = options.onAnalysisError;
     this.onSeek = options.onSeek;
     this.onToggle = options.onToggle;
     this.resizeObserver = new ResizeObserver(this.resize);
@@ -176,6 +179,7 @@ export class WaveformView {
       }
 
       this.showState('Waveform unavailable.', true);
+      this.onAnalysisError?.();
       this.render();
     }
   }

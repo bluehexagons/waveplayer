@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 
 function createSilentWave(): Buffer {
   const sampleRate = 8_000;
-  const samples = sampleRate;
+  const samples = sampleRate * 4;
   const buffer = Buffer.alloc(44 + samples * 2);
 
   buffer.write('RIFF', 0);
@@ -45,7 +45,7 @@ test('loads a real waveform and exposes complete transport controls', async ({ p
   );
   await queueTrack.click();
   await expect(page.getByRole('heading', { name: 'Creepy Piano No. 2' })).toBeVisible();
-  await expect(page).toHaveURL(/#creepy-piano-no-2$/);
+  await expect(page).toHaveURL(/\?track=creepy-piano-no-2$/);
   await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
   await expect(queueTrack).toBeFocused();
   await expect(queueTrack).toHaveAccessibleName(
@@ -92,11 +92,16 @@ test('loads a local file without leaving the browser', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Late Night Sketch' })).toBeVisible();
   await expect(page.locator('[data-queue] .queue-item')).toHaveCount(4);
   await expect(page.getByText('Local audio · This device')).toBeVisible();
-  await expect(page.getByText('Loaded “Late Night Sketch” locally.')).toBeVisible();
+  await expect(page.locator('[data-local-status]')).toHaveText(
+    'Opened “late-night_sketch.wav” on this device.',
+  );
+  await expect(page.locator('[data-audio-spec]')).toHaveText(/kHz analysis$/);
   await expect(page.locator('[data-download]')).toHaveAttribute(
     'download',
     'late-night_sketch.wav',
   );
+  await page.getByRole('button', { name: 'Play', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
 });
 
 test('remains usable at a narrow mobile viewport', async ({ page }) => {
@@ -104,10 +109,16 @@ test('remains usable at a narrow mobile viewport', async ({ page }) => {
   await page.goto('./');
 
   await expect(page.getByRole('heading', { name: 'Audio inspection console' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeInViewport({
+    ratio: 1,
+  });
+  await expect(page.getByRole('button', { name: 'Open audio' })).toBeInViewport({ ratio: 1 });
+  await expect(page.getByRole('button', { name: 'Previous track' })).toBeInViewport();
+  await expect(page.getByRole('button', { name: 'Next track' })).toBeInViewport();
+  await expect(page.getByRole('link', { name: 'Download current track' })).toBeInViewport();
 
   const dropZone = page.locator('[data-drop-zone]');
-  const dropZoneChild = dropZone.getByRole('heading', { name: 'Load local source' });
+  const dropZoneChild = dropZone.getByRole('button', { name: 'Open audio' });
   await dropZone.dispatchEvent('dragenter');
   await dropZoneChild.dispatchEvent('dragenter');
   await dropZoneChild.dispatchEvent('dragleave');
@@ -115,10 +126,28 @@ test('remains usable at a narrow mobile viewport', async ({ page }) => {
   await dropZone.dispatchEvent('dragleave');
   await expect(dropZone).not.toHaveClass(/is-dragging/);
 
+  await page.setViewportSize({ width: 320, height: 568 });
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeInViewport({
+    ratio: 1,
+  });
+  await expect(page.getByRole('button', { name: 'Open audio' })).toBeInViewport({ ratio: 1 });
   const hasHorizontalOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
   );
   expect(hasHorizontalOverflow).toBe(false);
+});
+
+test('opens legacy track links and preserves section anchors', async ({ page }) => {
+  await page.goto('./#melodic-study');
+  await expect(page.getByRole('heading', { name: 'Melodic Study' })).toBeVisible();
+
+  await page.goto('./?track=creepy-piano-no-2#usage');
+  await expect(page.getByRole('heading', { name: 'Control map' })).toBeInViewport();
+  await expect(page.getByRole('heading', { name: 'Creepy Piano No. 2' })).toBeAttached();
+  await expect(page).toHaveURL(/\?track=creepy-piano-no-2#usage$/);
+
+  await page.getByRole('button', { name: 'Next track' }).click();
+  await expect(page).toHaveURL(/\?track=melodic-study#usage$/);
 });
 
 test('keeps the selected playback speed when switching tracks', async ({ page }) => {
@@ -133,7 +162,7 @@ test('keeps the selected playback speed when switching tracks', async ({ page })
   );
 });
 
-test('reports a local file that the browser cannot play', async ({ page }) => {
+test('reports an unreadable local file and keeps the playable track', async ({ page }) => {
   await page.goto('./');
   await page.locator('[data-file-input]').setInputFiles({
     name: 'broken.wav',
@@ -141,8 +170,11 @@ test('reports a local file that the browser cannot play', async ({ page }) => {
     buffer: Buffer.from('invalid audio'),
   });
 
-  await expect(page.locator('[data-waveform-state]')).toHaveClass(/is-error/);
-  await expect(page.locator('[data-toast]')).toHaveText('This audio file could not be played.');
+  await expect(page.locator('[data-local-status]')).toHaveText(
+    'Could not open “broken.wav”. Choose a different audio file.',
+  );
+  await expect(page.getByRole('heading', { name: 'Scales in Motion' })).toBeVisible();
+  await expect(page.locator('[data-queue] .queue-item')).toHaveCount(3);
 });
 
 test('has no automatically detectable accessibility violations', async ({ page }) => {
