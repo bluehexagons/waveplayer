@@ -30,8 +30,8 @@ interface WaveformPalette {
 
 const REMAINING_PALETTE: WaveformPalette = {
   envelopeFill: 'rgba(247, 245, 238, 0.07)',
-  envelopeStroke: 'rgba(247, 245, 238, 0.34)',
-  energyFill: 'rgba(247, 245, 238, 0.17)',
+  envelopeStroke: 'rgba(247, 245, 238, 0.44)',
+  energyFill: 'rgba(247, 245, 238, 0.22)',
   onset: '#ff9b7b',
   texture: 'rgba(179, 168, 255, 0.62)',
 };

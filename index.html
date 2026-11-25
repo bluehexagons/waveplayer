@@ -5,64 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="An interactive browser waveform audio player demo built with TypeScript 7."
+      content="Play demo tracks and inspect waveforms from audio on your device."
     />
-    <meta name="theme-color" content="#ecece7" />
+    <meta name="theme-color" content="#f3f2ed" />
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%23171714'/%3E%3Cpath d='M12 32h6l4-15 7 30 7-38 7 45 5-25 4 3' fill='none' stroke='%23d8ff45' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
     />
-    <title>Waveplayer — Audio inspection console</title>
+    <title>Waveplayer</title>
     <script type="module" src="/src/main.ts"></script>
   </head>
   <body>
     <a class="skip-link" href="#player">Skip to player</a>
 
-    <header class="site-header">
-      <a class="brand" href="#top" aria-label="Waveplayer home">
+    <header class="site-header" id="top">
+      <h1 class="brand">
         <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
-        <span>WAVEPLAYER</span>
-      </a>
-      <div class="header-tools">
-        <span class="header-status"><i aria-hidden="true"></i> Engine ready</span>
-        <nav class="header-actions" aria-label="Site links">
-          <a href="#player">Console</a>
-          <a href="#usage">Reference</a>
-          <a
-            href="https://github.com/bluehexagons/waveplayer"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Source
-            <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M5 3h8v8M13 3 3 13" /></svg>
-          </a>
-        </nav>
-      </div>
+        Waveplayer
+      </h1>
+      <nav class="header-actions" aria-label="Site links">
+        <a href="#usage">Shortcuts</a>
+        <a href="https://github.com/bluehexagons/waveplayer" target="_blank" rel="noreferrer">
+          Source
+          <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M5 3h8v8M13 3 3 13" /></svg>
+        </a>
+      </nav>
     </header>
 
-    <main class="demo-page" id="top">
-      <section class="intro" aria-labelledby="page-title">
-        <div class="intro-copy">
-          <h1 id="page-title">Audio inspection console</h1>
-          <p>Inspect the waveform of a demo track or open an audio file from your device.</p>
-        </div>
-        <dl class="tool-facts">
-          <div><dt>Engine</dt><dd>Web Audio API</dd></div>
-          <div><dt>Analysis</dt><dd>4,096 bins</dd></div>
-          <div><dt>Input</dt><dd>Local / private</dd></div>
-        </dl>
-      </section>
-
+    <main class="demo-page">
       <section class="player-section" id="player" aria-label="Audio player">
         <div class="player-card" data-playing="false">
-          <div class="track-art" aria-hidden="true">
-            <div class="art-grid"></div>
-            <div class="module-id"><span>Source</span><b data-track-number>01</b></div>
-            <div class="source-meter">
-              <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
-            </div>
-          </div>
-
           <div class="transport">
             <div class="now-playing">
               <div>
@@ -90,6 +62,12 @@
               </div>
             </div>
 
+            <div class="waveform-key" aria-hidden="true">
+              <span class="key-energy"><i></i>Energy</span>
+              <span class="key-onset"><i></i>Onsets</span>
+              <span class="key-texture"><i></i>Texture</span>
+            </div>
+
             <div class="waveform-wrap">
               <canvas
                 data-waveform
@@ -106,11 +84,6 @@
                 The outer envelope shows sample peaks, the filled center shows average energy,
                 orange ticks show sudden onsets, and the lower purple rail shows signal texture.
               </p>
-              <div class="waveform-key" aria-hidden="true">
-                <span class="key-energy"><i></i>Energy</span>
-                <span class="key-onset"><i></i>Onset</span>
-                <span class="key-texture"><i></i>Texture</span>
-              </div>
               <output class="hover-time" data-hover-time aria-hidden="true">0:00</output>
               <div class="waveform-state" data-waveform-state role="status">
                 <span class="loader" aria-hidden="true"></span>
@@ -120,9 +93,7 @@
 
             <div class="time-row" aria-live="off">
               <time data-current-time>0:00</time>
-              <div class="signal-readout">
-                <span class="audio-spec" data-audio-spec>Loading audio details</span>
-              </div>
+              <span class="signal-readout" data-audio-spec>Loading audio details</span>
               <time data-duration>0:00</time>
             </div>
 
@@ -180,65 +151,21 @@
         </div>
       </section>
 
-      <section class="workspace" aria-label="Audio sources">
-        <div class="queue-panel">
-          <div class="panel-title-row">
-            <div>
-              <p class="eyebrow">Module 02 / Sources</p>
-              <h2>Loaded sources</h2>
-            </div>
-            <span class="track-count" data-track-count>3 tracks</span>
-          </div>
-          <div class="queue-columns" aria-hidden="true">
-            <span>ID</span><span>Signal</span><span>Source</span><span>Length</span><span>State</span>
-          </div>
-          <div class="queue" data-queue></div>
-        </div>
+      <section class="workspace" aria-labelledby="playlist-heading">
+        <h2 id="playlist-heading">Playlist</h2>
+        <div class="queue" data-queue></div>
       </section>
 
-      <section class="usage" id="usage" aria-label="Reference">
-        <article class="interaction-guide">
-          <p class="eyebrow">Module 03 / Controls</p>
-          <h2 id="usage-heading">Control map</h2>
-          <dl class="shortcut-list">
-            <div><dt>Click or drag</dt><dd>Seek on the waveform</dd></div>
-            <div><dt>Double-click</dt><dd>Play or pause</dd></div>
-            <div><dt>Space / K</dt><dd>Play or pause</dd></div>
-            <div><dt>J / L</dt><dd>Jump back or forward 10 seconds</dd></div>
-            <div><dt>Arrow keys</dt><dd>Seek while the waveform is focused</dd></div>
-            <div><dt>M</dt><dd>Mute or unmute</dd></div>
-          </dl>
-        </article>
-
-        <article class="api-panel">
-          <div class="api-heading">
-            <div>
-              <p class="eyebrow">Module 04 / TypeScript</p>
-              <h2>Engine surface</h2>
-            </div>
-            <span>0 runtime dependencies</span>
-          </div>
-          <pre><code><span>const</span> player = <span>new</span> WavePlayer(tracks);
-
-player.on(<b>'change'</b>, render);
-player.seek(<b>12</b>);
-<span>await</span> player.play();</code></pre>
-          <p>
-            Playback state and waveform rendering are separate typed modules, so the engine can be
-            reused with a different interface.
-          </p>
-          <a href="https://github.com/bluehexagons/waveplayer/tree/main/src/player">View source →</a>
-        </article>
+      <section class="usage" id="usage" aria-labelledby="usage-heading">
+        <h2 id="usage-heading">Playback shortcuts</h2>
+        <dl class="shortcut-list">
+          <div><dt>Play or pause</dt><dd><kbd>Space</kbd> or <kbd>K</kbd> · Double-click waveform</dd></div>
+          <div><dt>Seek on waveform</dt><dd>Click, drag, or use <kbd>←</kbd> <kbd>→</kbd> when focused</dd></div>
+          <div><dt>Jump 10 seconds</dt><dd><kbd>J</kbd> back · <kbd>L</kbd> forward</dd></div>
+          <div><dt>Mute or unmute</dt><dd><kbd>M</kbd></dd></div>
+        </dl>
       </section>
     </main>
-
-    <footer class="site-footer">
-      <a class="brand" href="#top">
-        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
-        <span>WAVEPLAYER</span>
-      </a>
-      <p>WP-07 · TypeScript 7 · Web Audio API · Apache 2.0</p>
-    </footer>
 
     <div class="toast" data-toast role="status" aria-live="polite"></div>
   </body>

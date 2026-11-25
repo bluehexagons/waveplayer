@@ -51,8 +51,6 @@ function query<ElementType extends Element>(
 
 const elements = {
   playerCard: query<HTMLElement>('.player-card'),
-  trackArt: query<HTMLElement>('.track-art'),
-  trackNumber: query<HTMLElement>('[data-track-number]'),
   trackTitle: query<HTMLElement>('[data-track-title]'),
   trackArtist: query<HTMLElement>('[data-track-artist]'),
   trackStatus: query<HTMLElement>('[data-track-status]'),
@@ -68,7 +66,6 @@ const elements = {
   volume: query<HTMLInputElement>('[data-volume]'),
   rate: query<HTMLButtonElement>('[data-rate]'),
   queue: query<HTMLElement>('[data-queue]'),
-  trackCount: query<HTMLElement>('[data-track-count]'),
   download: query<HTMLAnchorElement>('[data-download]'),
   copy: query<HTMLButtonElement>('[data-copy]'),
   uploadButton: query<HTMLButtonElement>('[data-upload-button]'),
@@ -116,21 +113,6 @@ function showToast(message: string): void {
   }, 2_600);
 }
 
-function createMiniWave(index: number): HTMLElement {
-  const wave = document.createElement('span');
-  wave.className = 'mini-wave';
-  wave.setAttribute('aria-hidden', 'true');
-
-  for (let bar = 0; bar < 18; bar += 1) {
-    const line = document.createElement('i');
-    const height = 20 + Math.abs(Math.sin((bar + 1) * (index + 1) * 0.77)) * 75;
-    line.style.height = `${Math.round(height)}%`;
-    wave.append(line);
-  }
-
-  return wave;
-}
-
 function renderQueue(): void {
   const fragment = document.createDocumentFragment();
   const snapshot = player.snapshot;
@@ -147,10 +129,6 @@ function renderQueue(): void {
     action.className = 'sr-only';
     action.dataset.queueAction = '';
 
-    const number = document.createElement('span');
-    number.className = 'queue-number';
-    number.textContent = (index + 1).toString().padStart(2, '0');
-
     const copy = document.createElement('span');
     copy.className = 'queue-copy';
     const title = document.createElement('strong');
@@ -162,16 +140,16 @@ function renderQueue(): void {
     copy.append(title, subtitle);
 
     const duration = document.createElement('time');
-    duration.textContent = knownDurations.has(track.id)
-      ? formatTime(knownDurations.get(track.id) ?? 0)
-      : '—:—';
+    const knownDuration = knownDurations.get(track.id);
+    if (knownDuration !== undefined) {
+      duration.textContent = formatTime(knownDuration);
+      duration.dateTime = `PT${Math.floor(knownDuration)}S`;
+    }
 
     const playMark = document.createElement('span');
     playMark.className = 'queue-play-mark';
     playMark.setAttribute('aria-hidden', 'true');
-    playMark.textContent = '▶';
-
-    button.append(action, number, createMiniWave(index), copy, duration, playMark);
+    button.append(action, playMark, copy, duration);
     button.addEventListener('click', () => {
       if (index === player.snapshot.index) {
         void player.toggle();
@@ -183,7 +161,6 @@ function renderQueue(): void {
   });
 
   elements.queue.replaceChildren(fragment);
-  elements.trackCount.textContent = `${player.trackList.length} ${player.trackList.length === 1 ? 'track' : 'tracks'}`;
   syncQueueState(snapshot, true);
 }
 
@@ -196,12 +173,8 @@ function syncQueueState(snapshot: PlayerSnapshot, force = false): void {
 
   for (const button of elements.queue.querySelectorAll<HTMLButtonElement>('.queue-item')) {
     const index = Number(button.dataset.trackIndex);
-    const track = player.trackList[index];
-    if (!track) {
-      continue;
-    }
-
     const isCurrent = index === snapshot.index;
+    const isPlaying = isCurrent && !snapshot.paused;
     button.classList.toggle('is-active', isCurrent);
     if (isCurrent) {
       button.setAttribute('aria-current', 'true');
@@ -210,13 +183,11 @@ function syncQueueState(snapshot: PlayerSnapshot, force = false): void {
     }
     const action = button.querySelector<HTMLElement>('[data-queue-action]');
     if (action) {
-      action.textContent = isCurrent
-        ? `${snapshot.paused ? 'Play' : 'Pause'} current track, ${track.title}`
-        : `Play ${track.title}`;
+      action.textContent = isPlaying ? 'Pause' : 'Play';
     }
     const playMark = button.querySelector<HTMLElement>('.queue-play-mark');
     if (playMark) {
-      playMark.textContent = isCurrent && !snapshot.paused ? 'Ⅱ' : '▶';
+      playMark.textContent = isPlaying ? 'Ⅱ' : '▶';
     }
   }
 }
@@ -237,18 +208,18 @@ function updateAudioAnalysis(analysis: AudioAnalysis): void {
   knownDurations.set(track.id, analysis.duration);
   const channelLabel =
     analysis.channels === 1
-      ? 'MONO'
-      : `${analysis.channels === 2 ? 'STEREO' : `${analysis.channels} CH`}`;
+      ? 'Mono'
+      : analysis.channels === 2
+        ? 'Stereo'
+        : `${analysis.channels} channels`;
   const sampleRate = Number((analysis.sampleRate / 1_000).toFixed(1));
   elements.audioSpec.textContent = `${channelLabel} · ${sampleRate} kHz analysis`;
   updateQueueDuration(track.id, analysis.duration);
 }
 
-function handleTrackChange(track: Track, index: number): void {
+function handleTrackChange(track: Track): void {
   elements.trackTitle.textContent = track.title;
   elements.trackArtist.textContent = `${track.artist} · ${track.subtitle}`;
-  elements.trackNumber.textContent = (index + 1).toString().padStart(2, '0');
-  elements.trackArt.style.setProperty('--track-accent', track.accent);
   elements.audioSpec.textContent = 'Reading audio details';
   elements.download.href = track.src;
   elements.download.download = track.downloadName ?? track.src.split('/').at(-1) ?? track.title;
@@ -496,16 +467,16 @@ document.addEventListener('keydown', (event) => {
 });
 
 player.on('change', handleSnapshot);
-player.on('trackchange', ({ track, index }) => {
+player.on('trackchange', ({ track }) => {
   updateTrackUrl(track);
-  handleTrackChange(track, index);
+  handleTrackChange(track);
 });
 player.on('error', (message) => {
   showToast(player.currentTrack.local ? 'This audio file could not be played.' : message);
 });
 
 renderQueue();
-handleTrackChange(player.currentTrack, player.snapshot.index);
+handleTrackChange(player.currentTrack);
 handleSnapshot(player.snapshot);
 for (const track of tracks) {
   probeTrackDuration(track);

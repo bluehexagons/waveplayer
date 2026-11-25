@@ -25,7 +25,7 @@ function createSilentWave(): Buffer {
 test('loads a real waveform and exposes complete transport controls', async ({ page }) => {
   await page.goto('./');
 
-  await expect(page.getByRole('heading', { name: 'Audio inspection console' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Waveplayer' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Scales in Motion' })).toBeVisible();
   await expect(page.locator('[data-queue] .queue-item')).toHaveCount(3);
   await expect(page.locator('[data-waveform-state]')).toHaveClass(/is-hidden/, { timeout: 15_000 });
@@ -41,22 +41,19 @@ test('loads a real waveform and exposes complete transport controls', async ({ p
 
   const queueTrack = page.locator('.queue-item[data-track-id="creepy-piano-no-2"]');
   await expect(queueTrack).toHaveAccessibleName(
-    /^Play Creepy Piano No\. 2 02 Creepy Piano No\. 2 Loren Crain/,
+    /^Play Creepy Piano No\. 2 Loren Crain · Nocturne sketch \d+:\d{2}$/,
   );
   await queueTrack.click();
   await expect(page.getByRole('heading', { name: 'Creepy Piano No. 2' })).toBeVisible();
   await expect(page).toHaveURL(/\?track=creepy-piano-no-2$/);
   await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
   await expect(queueTrack).toBeFocused();
-  await expect(queueTrack).toHaveAccessibleName(
-    /^Pause current track, Creepy Piano No\. 2 02 Creepy Piano No\. 2 Loren Crain/,
-  );
+  await expect(queueTrack).toHaveAccessibleName(/^Pause Creepy Piano No\. 2 /);
+  await expect(queueTrack).toHaveAttribute('aria-current', 'true');
 
   await queueTrack.click();
   await expect(queueTrack).toBeFocused();
-  await expect(queueTrack).toHaveAccessibleName(
-    /^Play current track, Creepy Piano No\. 2 02 Creepy Piano No\. 2 Loren Crain/,
-  );
+  await expect(queueTrack).toHaveAccessibleName(/^Play Creepy Piano No\. 2 /);
   await page.getByRole('button', { name: 'Play', exact: true }).click();
 
   await page.getByRole('button', { name: 'Playback speed, 1 times' }).click();
@@ -108,7 +105,7 @@ test('remains usable at a narrow mobile viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('./');
 
-  await expect(page.getByRole('heading', { name: 'Audio inspection console' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Waveplayer' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeInViewport({
     ratio: 1,
   });
@@ -142,7 +139,7 @@ test('opens legacy track links and preserves section anchors', async ({ page }) 
   await expect(page.getByRole('heading', { name: 'Melodic Study' })).toBeVisible();
 
   await page.goto('./?track=creepy-piano-no-2#usage');
-  await expect(page.getByRole('heading', { name: 'Control map' })).toBeInViewport();
+  await expect(page.getByRole('heading', { name: 'Playback shortcuts' })).toBeInViewport();
   await expect(page.getByRole('heading', { name: 'Creepy Piano No. 2' })).toBeAttached();
   await expect(page).toHaveURL(/\?track=creepy-piano-no-2#usage$/);
 
