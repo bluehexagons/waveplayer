@@ -128,6 +128,7 @@ export class WaveformView {
     delete this.canvas.dataset.analysisBins;
     delete this.canvas.dataset.waveformDetail;
     this.showState('Reading waveform…');
+    this.updateAria();
     this.render();
 
     try {
@@ -185,11 +186,20 @@ export class WaveformView {
   }
 
   update(currentTime: number, duration: number): void {
-    this.currentTime = Number.isFinite(currentTime) ? currentTime : 0;
-    if (Number.isFinite(duration) && duration > 0) {
-      this.duration = duration;
+    const nextTime = Number.isFinite(currentTime) ? currentTime : 0;
+    const nextDuration = Number.isFinite(duration) && duration > 0 ? duration : this.duration;
+    if (nextTime === this.currentTime && nextDuration === this.duration) {
+      return;
     }
-    this.updateAria();
+
+    const timeLabelChanged =
+      Math.floor(nextTime) !== Math.floor(this.currentTime) ||
+      Math.floor(nextDuration) !== Math.floor(this.duration);
+    this.currentTime = nextTime;
+    this.duration = nextDuration;
+    if (timeLabelChanged) {
+      this.updateAria();
+    }
     this.render();
   }
 
@@ -659,8 +669,8 @@ export class WaveformView {
   }
 
   private updateAria(): void {
-    this.canvas.setAttribute('aria-valuemax', Math.round(this.duration).toString());
-    this.canvas.setAttribute('aria-valuenow', Math.round(this.currentTime).toString());
+    this.canvas.setAttribute('aria-valuemax', Math.floor(this.duration).toString());
+    this.canvas.setAttribute('aria-valuenow', Math.floor(this.currentTime).toString());
     this.canvas.setAttribute(
       'aria-valuetext',
       `${formatTime(this.currentTime)} of ${formatTime(this.duration)}`,

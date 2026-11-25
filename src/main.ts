@@ -38,11 +38,8 @@ const tracks: Track[] = [
   },
 ];
 
-function query<ElementType extends Element>(
-  selector: string,
-  root: ParentNode = document,
-): ElementType {
-  const element = root.querySelector<ElementType>(selector);
+function query<ElementType extends Element>(selector: string): ElementType {
+  const element = document.querySelector<ElementType>(selector);
   if (!element) {
     throw new Error(`Required element not found: ${selector}`);
   }
@@ -82,10 +79,17 @@ const initialTrackIndex = Math.max(
   tracks.findIndex((track) => track.id === linkedTrackId),
 );
 const player = new WavePlayer(tracks, initialTrackIndex);
-const knownDurations = new Map<string, number>();
+interface QueueRow {
+  readonly button: HTMLButtonElement;
+  readonly action: HTMLSpanElement;
+  readonly playMark: HTMLSpanElement;
+  readonly time: HTMLTimeElement;
+}
+
+const queueRows: QueueRow[] = [];
 const localUrls = new Set<string>();
 let toastTimer: number | null = null;
-let queueStateKey = '';
+let previousSnapshot: PlayerSnapshot | undefined;
 let dragDepth = 0;
 let localFileCheck: AbortController | null = null;
 
@@ -113,99 +117,68 @@ function showToast(message: string): void {
   }, 2_600);
 }
 
-function renderQueue(): void {
-  const fragment = document.createDocumentFragment();
-  const snapshot = player.snapshot;
+function appendQueueTrack(track: Track, index: number): void {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'queue-item';
+  button.dataset.trackId = track.id;
+  button.style.setProperty('--track-accent', track.accent);
 
-  player.trackList.forEach((track, index) => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'queue-item';
-    button.dataset.trackIndex = index.toString();
-    button.dataset.trackId = track.id;
-    button.style.setProperty('--track-accent', track.accent);
+  const action = document.createElement('span');
+  action.className = 'sr-only';
 
-    const action = document.createElement('span');
-    action.className = 'sr-only';
-    action.dataset.queueAction = '';
+  const copy = document.createElement('span');
+  copy.className = 'queue-copy';
+  const title = document.createElement('strong');
+  title.textContent = track.title;
+  const subtitle = document.createElement('span');
+  subtitle.textContent = track.local
+    ? 'Local audio · This device'
+    : `${track.artist} · ${track.subtitle}`;
+  copy.append(title, subtitle);
 
-    const copy = document.createElement('span');
-    copy.className = 'queue-copy';
-    const title = document.createElement('strong');
-    title.textContent = track.title;
-    const subtitle = document.createElement('span');
-    subtitle.textContent = track.local
-      ? 'Local audio · This device'
-      : `${track.artist} · ${track.subtitle}`;
-    copy.append(title, subtitle);
-
-    const duration = document.createElement('time');
-    const knownDuration = knownDurations.get(track.id);
-    if (knownDuration !== undefined) {
-      duration.textContent = formatTime(knownDuration);
-      duration.dateTime = `PT${Math.floor(knownDuration)}S`;
+  const time = document.createElement('time');
+  const playMark = document.createElement('span');
+  playMark.className = 'queue-play-mark';
+  playMark.setAttribute('aria-hidden', 'true');
+  button.append(action, playMark, copy, time);
+  button.addEventListener('click', () => {
+    if (index === player.snapshot.index) {
+      void player.toggle();
+    } else {
+      void player.select(index, true);
     }
-
-    const playMark = document.createElement('span');
-    playMark.className = 'queue-play-mark';
-    playMark.setAttribute('aria-hidden', 'true');
-    button.append(action, playMark, copy, duration);
-    button.addEventListener('click', () => {
-      if (index === player.snapshot.index) {
-        void player.toggle();
-      } else {
-        void player.select(index, true);
-      }
-    });
-    fragment.append(button);
   });
 
-  elements.queue.replaceChildren(fragment);
-  syncQueueState(snapshot, true);
+  const row = { button, action, playMark, time };
+  queueRows[index] = row;
+  setQueueRowState(row, false, false);
+  elements.queue.append(button);
 }
 
-function syncQueueState(snapshot: PlayerSnapshot, force = false): void {
-  const stateKey = `${snapshot.index}:${snapshot.paused}`;
-  if (!force && stateKey === queueStateKey) {
+function setQueueRowState(row: QueueRow | undefined, isCurrent: boolean, isPlaying: boolean): void {
+  if (!row) {
     return;
   }
-  queueStateKey = stateKey;
-
-  for (const button of elements.queue.querySelectorAll<HTMLButtonElement>('.queue-item')) {
-    const index = Number(button.dataset.trackIndex);
-    const isCurrent = index === snapshot.index;
-    const isPlaying = isCurrent && !snapshot.paused;
-    button.classList.toggle('is-active', isCurrent);
-    if (isCurrent) {
-      button.setAttribute('aria-current', 'true');
-    } else {
-      button.removeAttribute('aria-current');
-    }
-    const action = button.querySelector<HTMLElement>('[data-queue-action]');
-    if (action) {
-      action.textContent = isPlaying ? 'Pause' : 'Play';
-    }
-    const playMark = button.querySelector<HTMLElement>('.queue-play-mark');
-    if (playMark) {
-      playMark.textContent = isPlaying ? 'Ⅱ' : '▶';
-    }
+  row.button.classList.toggle('is-active', isCurrent);
+  if (isCurrent) {
+    row.button.setAttribute('aria-current', 'true');
+  } else {
+    row.button.removeAttribute('aria-current');
   }
+  row.action.textContent = isPlaying ? 'Pause' : 'Play';
+  row.playMark.textContent = isPlaying ? 'Ⅱ' : '▶';
 }
 
-function updateQueueDuration(trackId: string, duration: number): void {
-  const button = Array.from(elements.queue.querySelectorAll<HTMLButtonElement>('.queue-item')).find(
-    (item) => item.dataset.trackId === trackId,
-  );
-  const time = button?.querySelector('time');
-  if (time) {
-    time.textContent = formatTime(duration);
-    time.dateTime = `PT${Math.floor(duration)}S`;
+function updateTimeLabel(time: HTMLTimeElement, seconds: number): void {
+  const dateTime = `PT${Math.floor(seconds)}S`;
+  if (time.dateTime !== dateTime) {
+    time.textContent = formatTime(seconds);
+    time.dateTime = dateTime;
   }
 }
 
 function updateAudioAnalysis(analysis: AudioAnalysis): void {
-  const track = player.currentTrack;
-  knownDurations.set(track.id, analysis.duration);
   const channelLabel =
     analysis.channels === 1
       ? 'Mono'
@@ -214,7 +187,10 @@ function updateAudioAnalysis(analysis: AudioAnalysis): void {
         : `${analysis.channels} channels`;
   const sampleRate = Number((analysis.sampleRate / 1_000).toFixed(1));
   elements.audioSpec.textContent = `${channelLabel} · ${sampleRate} kHz analysis`;
-  updateQueueDuration(track.id, analysis.duration);
+  const row = queueRows[player.snapshot.index];
+  if (row) {
+    updateTimeLabel(row.time, analysis.duration);
+  }
 }
 
 function handleTrackChange(track: Track): void {
@@ -241,29 +217,50 @@ function updateTrackUrl(track: Track): void {
 }
 
 function handleSnapshot(snapshot: PlayerSnapshot): void {
+  const previous = previousSnapshot;
+  previousSnapshot = snapshot;
+
   const isPlaying = !snapshot.paused;
   const status = isPlaying ? 'Playing' : snapshot.ready ? 'Paused' : 'Loading track';
   if (elements.trackStatus.textContent !== status) {
     elements.trackStatus.textContent = status;
   }
-  elements.playerCard.dataset.playing = String(isPlaying);
-  elements.play.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
-  elements.currentTime.textContent = formatTime(snapshot.currentTime);
-  elements.currentTime.dateTime = `PT${Math.floor(snapshot.currentTime)}S`;
-  elements.duration.textContent = formatTime(snapshot.duration);
-  elements.duration.dateTime = `PT${Math.floor(snapshot.duration)}S`;
-  const isSilent = snapshot.muted || snapshot.volume === 0;
-  elements.mute.classList.toggle('is-muted', isSilent);
-  elements.mute.setAttribute('aria-label', isSilent ? 'Unmute' : 'Mute');
-  elements.volume.value = snapshot.volume.toString();
-  elements.volume.style.setProperty('--volume', `${snapshot.volume * 100}%`);
-  elements.rate.textContent = `${snapshot.playbackRate.toFixed(2).replace(/\.00$/, '').replace(/0$/, '')}×`;
-  elements.rate.setAttribute('aria-label', `Playback speed, ${snapshot.playbackRate} times`);
-  syncQueueState(snapshot);
+  const playbackChanged = previous?.paused !== snapshot.paused;
+  const trackChanged = previous?.index !== snapshot.index;
+  if (playbackChanged) {
+    elements.playerCard.dataset.playing = String(isPlaying);
+    elements.play.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
+  }
+  if (trackChanged && previous) {
+    setQueueRowState(queueRows[previous.index], false, false);
+  }
+  if (trackChanged || playbackChanged) {
+    setQueueRowState(queueRows[snapshot.index], true, isPlaying);
+  }
+
+  updateTimeLabel(elements.currentTime, snapshot.currentTime);
+  updateTimeLabel(elements.duration, snapshot.duration);
+
+  if (previous?.volume !== snapshot.volume || previous.muted !== snapshot.muted) {
+    const isSilent = snapshot.muted || snapshot.volume === 0;
+    elements.mute.classList.toggle('is-muted', isSilent);
+    elements.mute.setAttribute('aria-label', isSilent ? 'Unmute' : 'Mute');
+    elements.volume.value = snapshot.volume.toString();
+    elements.volume.style.setProperty('--volume', `${snapshot.volume * 100}%`);
+  }
+  if (previous?.playbackRate !== snapshot.playbackRate) {
+    elements.rate.textContent = `${snapshot.playbackRate.toFixed(2).replace(/\.00$/, '').replace(/0$/, '')}×`;
+    elements.rate.setAttribute('aria-label', `Playback speed, ${snapshot.playbackRate} times`);
+  }
+
   waveform.update(snapshot.currentTime, snapshot.duration);
 }
 
-function probeTrackDuration(track: Track): void {
+function probeTrackDuration(track: Track, index: number): void {
+  const row = queueRows[index];
+  if (!row) {
+    return;
+  }
   const probe = new Audio();
   const controller = new AbortController();
   probe.preload = 'metadata';
@@ -276,8 +273,7 @@ function probeTrackDuration(track: Track): void {
     'loadedmetadata',
     () => {
       if (Number.isFinite(probe.duration)) {
-        knownDurations.set(track.id, probe.duration);
-        updateQueueDuration(track.id, probe.duration);
+        updateTimeLabel(row.time, probe.duration);
       }
       release();
     },
@@ -354,7 +350,7 @@ async function loadLocalFile(file: File): Promise<void> {
   };
 
   const index = player.addTrack(localTrack);
-  renderQueue();
+  appendQueueTrack(localTrack, index);
   await player.select(index, false);
   showLocalStatus(`Opened “${file.name}” on this device.`);
 }
@@ -367,9 +363,9 @@ elements.forward.addEventListener('click', () => player.skip(10));
 elements.mute.addEventListener('click', () => player.toggleMuted());
 elements.volume.addEventListener('input', () => player.setVolume(Number(elements.volume.value)));
 
-const playbackRates = [0.75, 1, 1.25, 1.5, 2] as const;
+const playbackRates: readonly number[] = [0.75, 1, 1.25, 1.5, 2];
 elements.rate.addEventListener('click', () => {
-  const currentRate = player.snapshot.playbackRate as (typeof playbackRates)[number];
+  const currentRate = player.snapshot.playbackRate;
   const currentIndex = playbackRates.indexOf(currentRate);
   const nextRate = playbackRates[(currentIndex + 1) % playbackRates.length] ?? 1;
   player.setPlaybackRate(nextRate);
@@ -475,12 +471,10 @@ player.on('error', (message) => {
   showToast(player.currentTrack.local ? 'This audio file could not be played.' : message);
 });
 
-renderQueue();
+tracks.forEach(appendQueueTrack);
 handleTrackChange(player.currentTrack);
 handleSnapshot(player.snapshot);
-for (const track of tracks) {
-  probeTrackDuration(track);
-}
+tracks.forEach(probeTrackDuration);
 
 window.addEventListener('pagehide', (event) => {
   if (event.persisted) {

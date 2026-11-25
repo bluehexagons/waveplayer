@@ -9,6 +9,19 @@ export class WavePlayer {
   private readonly listeners = new Map<keyof PlayerEventMap, Set<Listener<unknown>>>();
   private readonly eventController = new AbortController();
   private readonly tracks: Track[];
+  private readonly mediaSessionActions = {
+    play: () => void this.play(),
+    pause: () => this.pause(),
+    previoustrack: () => void this.previous(),
+    nexttrack: () => void this.next(),
+    seekbackward: (details) => this.skip(-(details.seekOffset ?? 10)),
+    seekforward: (details) => this.skip(details.seekOffset ?? 10),
+    seekto: (details) => {
+      if (details.seekTime !== undefined) {
+        this.seek(details.seekTime);
+      }
+    },
+  } satisfies Partial<Record<MediaSessionAction, MediaSessionActionHandler>>;
   private activeIndex = 0;
   private animationFrame: number | null = null;
   private lastAudibleVolume = 0.82;
@@ -252,23 +265,13 @@ export class WavePlayer {
       album: 'Waveplayer Sessions',
     });
 
-    const actions: Partial<Record<MediaSessionAction, MediaSessionActionHandler>> = {
-      play: () => void this.play(),
-      pause: () => this.pause(),
-      previoustrack: () => void this.previous(),
-      nexttrack: () => void this.next(),
-      seekbackward: (details) => this.skip(-(details.seekOffset ?? 10)),
-      seekforward: (details) => this.skip(details.seekOffset ?? 10),
-      seekto: (details) => {
-        if (details.seekTime !== undefined) {
-          this.seek(details.seekTime);
-        }
-      },
-    };
+    this.setMediaSessionActions(navigator.mediaSession, true);
+  }
 
-    for (const [action, handler] of Object.entries(actions)) {
+  private setMediaSessionActions(session: MediaSession, enabled: boolean): void {
+    for (const [action, handler] of Object.entries(this.mediaSessionActions)) {
       try {
-        navigator.mediaSession.setActionHandler(action as MediaSessionAction, handler ?? null);
+        session.setActionHandler(action as MediaSessionAction, enabled ? handler : null);
       } catch {
         // Some browsers expose Media Session but implement only a subset of its actions.
       }
@@ -286,22 +289,7 @@ export class WavePlayer {
       return;
     }
 
-    const actions: readonly MediaSessionAction[] = [
-      'play',
-      'pause',
-      'previoustrack',
-      'nexttrack',
-      'seekbackward',
-      'seekforward',
-      'seekto',
-    ];
-    for (const action of actions) {
-      try {
-        navigator.mediaSession.setActionHandler(action, null);
-      } catch {
-        // Some browsers implement only a subset of Media Session actions.
-      }
-    }
+    this.setMediaSessionActions(navigator.mediaSession, false);
     navigator.mediaSession.metadata = null;
     navigator.mediaSession.playbackState = 'none';
     WavePlayer.mediaSessionOwner = null;
@@ -312,9 +300,10 @@ export class WavePlayer {
   };
 
   private readonly tick = (): void => {
+    this.animationFrame = null;
     this.emitChange();
     if (!this.audio.paused) {
-      this.animationFrame = requestAnimationFrame(this.tick);
+      this.startAnimation();
     }
   };
 

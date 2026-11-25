@@ -80,6 +80,8 @@ test('loads a real waveform and exposes complete transport controls', async ({ p
 
 test('loads a local file without leaving the browser', async ({ page }) => {
   await page.goto('./');
+  const demoTrack = page.locator('.queue-item[data-track-id="scales-in-motion"]');
+  await demoTrack.focus();
   await page.locator('[data-file-input]').setInputFiles({
     name: 'late-night_sketch.wav',
     mimeType: 'audio/wav',
@@ -88,6 +90,11 @@ test('loads a local file without leaving the browser', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: 'Late Night Sketch' })).toBeVisible();
   await expect(page.locator('[data-queue] .queue-item')).toHaveCount(4);
+  await expect(demoTrack).toBeFocused();
+  await expect(demoTrack).not.toHaveAttribute('aria-current', 'true');
+  const localTrack = page.getByRole('button', { name: /^Play Late Night Sketch / });
+  await expect(localTrack).toHaveAttribute('aria-current', 'true');
+  await expect(localTrack.locator('time')).toHaveText('0:04');
   await expect(page.getByText('Local audio · This device')).toBeVisible();
   await expect(page.locator('[data-local-status]')).toHaveText(
     'Opened “late-night_sketch.wav” on this device.',
