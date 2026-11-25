@@ -134,6 +134,9 @@ export class WaveformView {
       }
 
       const encodedAudio = await response.arrayBuffer();
+      if (sequence !== this.loadSequence) {
+        return;
+      }
       const audioContext = new AudioContext();
       let audioBuffer: AudioBuffer;
       try {
@@ -172,7 +175,7 @@ export class WaveformView {
         return;
       }
 
-      this.showState('Waveform unavailable — playback still works.', true);
+      this.showState('Waveform unavailable.', true);
       this.render();
     }
   }
@@ -187,6 +190,7 @@ export class WaveformView {
   }
 
   destroy(): void {
+    this.loadSequence += 1;
     this.loadController?.abort();
     this.resizeObserver.disconnect();
     this.eventController.abort();

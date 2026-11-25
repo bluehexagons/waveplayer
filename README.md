@@ -63,8 +63,9 @@ npm run build      # Type-check and production build
 
 End-to-end tests cover waveform decoding, track changes, transport controls, local file loading,
 narrow mobile layouts, automated accessibility checks, and runtime or asset-loading errors.
-Local E2E runs use an installed Google Chrome, including Basaltwater's managed
-browser. CI installs Playwright's matching Chromium before running the same suite.
+The suite builds the production site and serves it under `/waveplayer/`, matching GitHub Pages.
+Local runs use an installed Google Chrome, including Basaltwater's managed browser. CI installs
+Playwright's matching Chromium and publishes the build exercised by the suite.
 Pull requests run checks, tests, and builds; only main publishes GitHub Pages.
 
 ## Keyboard controls

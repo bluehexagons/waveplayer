@@ -319,8 +319,10 @@ async function loadLocalFile(file: File): Promise<void> {
 
   const index = player.addTrack(localTrack);
   renderQueue();
-  await player.select(index, true);
-  showToast(`Loaded “${localTrack.title}” locally.`);
+  await player.select(index, false);
+  if ((await player.play()) && player.currentTrack === localTrack) {
+    showToast(`Loaded “${localTrack.title}” locally.`);
+  }
 }
 
 elements.play.addEventListener('click', () => void player.toggle());
@@ -431,7 +433,9 @@ document.addEventListener('keydown', (event) => {
 
 player.on('change', handleSnapshot);
 player.on('trackchange', ({ track, index }) => handleTrackChange(track, index));
-player.on('error', (message) => showToast(message));
+player.on('error', (message) => {
+  showToast(player.currentTrack.local ? 'This audio file could not be played.' : message);
+});
 
 renderQueue();
 handleTrackChange(player.currentTrack, player.snapshot.index);

@@ -23,7 +23,7 @@ function createSilentWave(): Buffer {
 }
 
 test('loads a real waveform and exposes complete transport controls', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
 
   await expect(page.getByRole('heading', { name: 'Audio inspection console' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Scales in Motion' })).toBeVisible();
@@ -82,7 +82,7 @@ test('loads a real waveform and exposes complete transport controls', async ({ p
 });
 
 test('loads a local file without leaving the browser', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await page.locator('[data-file-input]').setInputFiles({
     name: 'late-night_sketch.wav',
     mimeType: 'audio/wav',
@@ -101,7 +101,7 @@ test('loads a local file without leaving the browser', async ({ page }) => {
 
 test('remains usable at a narrow mobile viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/');
+  await page.goto('./');
 
   await expect(page.getByRole('heading', { name: 'Audio inspection console' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
@@ -121,8 +121,32 @@ test('remains usable at a narrow mobile viewport', async ({ page }) => {
   expect(hasHorizontalOverflow).toBe(false);
 });
 
+test('keeps the selected playback speed when switching tracks', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: 'Playback speed, 1 times' }).click();
+  await page.getByRole('button', { name: 'Next track' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Creepy Piano No. 2' })).toBeVisible();
+  await expect(page.locator('[data-waveform]')).toHaveAttribute('data-waveform-detail', 'ready');
+  await expect(page.getByRole('button', { name: 'Playback speed, 1.25 times' })).toHaveText(
+    '1.25×',
+  );
+});
+
+test('reports a local file that the browser cannot play', async ({ page }) => {
+  await page.goto('./');
+  await page.locator('[data-file-input]').setInputFiles({
+    name: 'broken.wav',
+    mimeType: 'audio/wav',
+    buffer: Buffer.from('invalid audio'),
+  });
+
+  await expect(page.locator('[data-waveform-state]')).toHaveClass(/is-error/);
+  await expect(page.locator('[data-toast]')).toHaveText('This audio file could not be played.');
+});
+
 test('has no automatically detectable accessibility violations', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.locator('[data-waveform-state]')).toHaveClass(/is-hidden/, { timeout: 15_000 });
 
   const results = await new AxeBuilder({ page }).analyze();
@@ -143,7 +167,7 @@ test('loads without runtime errors or failed asset requests', async ({ page }) =
     }
   });
 
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.locator('[data-waveform-state]')).toHaveClass(/is-hidden/, { timeout: 15_000 });
   expect(errors).toEqual([]);
 });

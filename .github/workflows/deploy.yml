@@ -39,11 +39,8 @@ jobs:
       - name: Install browser for end-to-end tests
         run: npx playwright install --with-deps chromium
 
-      - name: Run browser and accessibility tests
+      - name: Build production site and run browser and accessibility tests
         run: npm run test:e2e
-
-      - name: Build production site
-        run: npm run build
 
       - name: Upload site artifact
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'

@@ -166,7 +166,9 @@ export class WavePlayer {
   }
 
   setPlaybackRate(rate: number): void {
-    this.audio.playbackRate = clamp(rate, 0.5, 2);
+    const playbackRate = clamp(rate, 0.5, 2);
+    this.audio.defaultPlaybackRate = playbackRate;
+    this.audio.playbackRate = playbackRate;
   }
 
   destroy(): void {

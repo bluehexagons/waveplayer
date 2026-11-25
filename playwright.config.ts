@@ -7,15 +7,14 @@ export default defineConfig({
   retries: 0,
   reporter: 'list',
   use: {
-    baseURL: 'http://127.0.0.1:4173',
+    baseURL: 'http://127.0.0.1:4173/waveplayer/',
     browserName: 'chromium',
     channel: process.env.CI ? undefined : 'chrome',
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: 'npm run dev -- --port 4173',
-    url: 'http://127.0.0.1:4173',
-    reuseExistingServer: true,
+    command: 'npm run build && npm run preview -- --port 4173 --strictPort --base /waveplayer/',
+    url: 'http://127.0.0.1:4173/waveplayer/',
   },
 });
